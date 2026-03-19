@@ -21,6 +21,7 @@
 - 2026-03-19 00:22 PDT - Final verification passed: `npm run typecheck`, `npm run lint`, and `npm run build`.
 - 2026-03-19 00:23 PDT - Updated README milestone status notes for Milestone 3 CRUD behavior.
 - 2026-03-19 00:25 PDT - Runtime smoke check confirms `/entries` redirects unauthenticated users to `/login?next=...` while `/leaderboard` remains public.
+- 2026-03-19 00:39 PDT - Follow-up tweak: removed manual entry-name input and now generate `name` from participant name in server actions (`{participantName}'s Bracket`).
 
 ## Review
 Completed Milestone 3 with a minimal production-friendly CRUD flow for entries: database-backed list/search, create, edit, and delete with confirmation and validation/mutation error handling. Admin route protection remains in place and no Milestone 4+ features were introduced.

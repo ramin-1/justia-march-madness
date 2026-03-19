@@ -1,11 +1,5 @@
 import { z } from "zod";
 
-const entryNameSchema = z
-  .string({ required_error: "Entry name is required." })
-  .trim()
-  .min(1, "Entry name is required.")
-  .max(120, "Entry name must be 120 characters or fewer.");
-
 const participantNameSchema = z
   .string({ required_error: "Participant name is required." })
   .trim()
@@ -13,7 +7,6 @@ const participantNameSchema = z
   .max(120, "Participant name must be 120 characters or fewer.");
 
 export const entryInputSchema = z.object({
-  name: entryNameSchema,
   participantName: participantNameSchema,
 });
 
@@ -34,4 +27,9 @@ export type EntryInput = z.infer<typeof entryInputSchema>;
 export function getFormStringValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+export function buildEntryName(participantName: string) {
+  const trimmedParticipantName = participantName.trim();
+  return `${trimmedParticipantName}'s Bracket`;
 }

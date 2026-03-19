@@ -1,7 +1,6 @@
 export type EntryFormState = {
   message?: string;
   fieldErrors?: {
-    name?: string[];
     participantName?: string[];
   };
 };

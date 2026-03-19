@@ -7,7 +7,7 @@ export default function NewEntryPage() {
   return (
     <PageShell
       title="Add Bracket"
-      description="Create a new bracket entry. Bracket picks remain a placeholder in this milestone."
+      description="Create a new bracket entry by entering participant name. Bracket picks remain a placeholder in this milestone."
     >
       <EntryForm mode="create" submitAction={createEntryAction} />
 

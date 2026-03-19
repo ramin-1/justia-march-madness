@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import type { EntryFormState } from "@/app/entries/action-state";
 import { prisma } from "@/lib/prisma";
 import {
+  buildEntryName,
   entryIdSchema,
   entryInputSchema,
   entrySearchSchema,
@@ -57,7 +58,6 @@ export async function createEntryAction(
   formData: FormData,
 ): Promise<EntryFormState> {
   const parsedInput = entryInputSchema.safeParse({
-    name: getFormStringValue(formData, "name"),
     participantName: getFormStringValue(formData, "participantName"),
   });
 
@@ -71,8 +71,8 @@ export async function createEntryAction(
   try {
     await prisma.entry.create({
       data: {
-        name: parsedInput.data.name,
         participantName: parsedInput.data.participantName,
+        name: buildEntryName(parsedInput.data.participantName),
         picksJson: {},
       },
     });
@@ -99,7 +99,6 @@ export async function updateEntryAction(
   }
 
   const parsedInput = entryInputSchema.safeParse({
-    name: getFormStringValue(formData, "name"),
     participantName: getFormStringValue(formData, "participantName"),
   });
 
@@ -114,8 +113,8 @@ export async function updateEntryAction(
     await prisma.entry.update({
       where: { id: parsedEntryId.data },
       data: {
-        name: parsedInput.data.name,
         participantName: parsedInput.data.participantName,
+        name: buildEntryName(parsedInput.data.participantName),
       },
     });
   } catch (error) {
