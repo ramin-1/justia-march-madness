@@ -5,7 +5,7 @@ type ScaffoldSurface = "public" | "admin" | "auth";
 
 function getStatusMessage(surface: ScaffoldSurface) {
   if (surface === "admin") {
-    return "Admin scaffold route. Authentication is enabled in Milestone 2 while CRUD and bracket editing remain in later milestones.";
+    return "Admin route under active development. Authentication is enabled, while some workflows are placeholders for later milestones.";
   }
 
   if (surface === "auth") {

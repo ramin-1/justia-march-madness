@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import "./globals.css";
 import Link from "next/link";
+import { AdminSessionControl } from "@/components/admin-session-control";
 import { SiteNav } from "@/components/site-nav";
 
 export const metadata = {
@@ -19,10 +20,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 March Madness Company Challenge
               </Link>
               <p className="text-xs text-slate-500">
-                Milestone 2: public pages + protected admin routes
+                Milestone 3: public pages + protected admin entry management
               </p>
             </div>
-            <SiteNav />
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <SiteNav />
+              <AdminSessionControl />
+            </div>
           </div>
         </header>
         {children}

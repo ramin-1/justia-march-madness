@@ -1,5 +1,9 @@
+import { notFound } from "next/navigation";
+import { updateEntryAction } from "@/app/entries/actions";
 import { BracketPlaceholder } from "@/components/bracket-placeholder";
-import { ScaffoldPage } from "@/components/scaffold-page";
+import { EntryForm } from "@/components/entry-form";
+import { PageShell } from "@/components/page-shell";
+import { prisma } from "@/lib/prisma";
 
 export default async function EditEntryPage({
   params,
@@ -7,28 +11,35 @@ export default async function EditEntryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const entry = await prisma.entry.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      participantName: true,
+    },
+  });
+
+  if (!entry) {
+    notFound();
+  }
 
   return (
-    <ScaffoldPage
-      title={`Edit Entry: ${id}`}
-      description="Admin entry editing scaffold route."
-      surface="admin"
+    <PageShell
+      title={`Edit Entry: ${entry.name}`}
+      description="Update entry details. Bracket picks remain a placeholder in this milestone."
     >
-      <div className="mb-6 grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium">Entry name</label>
-          <input
-            defaultValue={id}
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">Participant name</label>
-          <input className="w-full rounded-md border border-slate-300 px-3 py-2" />
-        </div>
-      </div>
+      <EntryForm
+        mode="edit"
+        submitAction={updateEntryAction}
+        entryId={entry.id}
+        defaultName={entry.name}
+        defaultParticipantName={entry.participantName}
+      />
 
-      <BracketPlaceholder mode="edit" entryName={id} />
-    </ScaffoldPage>
+      <div className="mt-8">
+        <BracketPlaceholder mode="edit" entryName={entry.name} />
+      </div>
+    </PageShell>
   );
 }

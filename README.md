@@ -43,11 +43,16 @@ npm run dev
 - Public: `/leaderboard`, `/bracket/[id]`
 - Admin scaffolds: `/login`, `/entries`, `/entries/new`, `/entries/[id]/edit`, `/admin/results`
 
-## Milestone 2 status
+## Milestone 3 status
 
 - Shared app shell and navigation are in place for all scaffold routes.
 - Admin routes are now protected by Auth.js credentials login.
 - Prisma is wired to PostgreSQL via `DATABASE_URL` in environment config.
+- Entries admin pages now support database-backed CRUD with Prisma:
+  - list and search (`/entries`)
+  - create (`/entries/new`)
+  - edit (`/entries/[id]/edit`)
+  - delete with confirmation
 
 ## Admin auth setup
 

@@ -1,25 +1,95 @@
 import Link from "next/link";
-import { ScaffoldPage } from "@/components/scaffold-page";
+import { DeleteEntryButton } from "@/components/delete-entry-button";
+import { PageShell } from "@/components/page-shell";
+import { entrySearchSchema } from "@/lib/entries/validation";
+import { prisma } from "@/lib/prisma";
 
-const exampleEntries = [
-  { id: "demo-1", name: "Marketing Mayhem", participant: "Jordan", score: 24 },
-  { id: "demo-2", name: "Finance Full Court", participant: "Taylor", score: 18 },
-];
+export const dynamic = "force-dynamic";
 
-export default function EntriesPage() {
+const noticeMessages = {
+  created: "Entry created successfully.",
+  updated: "Entry updated successfully.",
+  deleted: "Entry deleted successfully.",
+} as const;
+
+const errorMessages = {
+  invalid_entry: "Unable to delete entry because the entry id was invalid.",
+  entry_not_found: "That entry no longer exists.",
+  delete_failed: "Unable to delete the entry right now. Please try again.",
+} as const;
+
+function getSingleSearchParam(
+  value: string | string[] | undefined,
+): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return Array.isArray(value) ? value[0] : value;
+}
+
+type EntriesPageProps = {
+  searchParams: Promise<{
+    q?: string | string[];
+    notice?: string | string[];
+    error?: string | string[];
+  }>;
+};
+
+export default async function EntriesPage({ searchParams }: EntriesPageProps) {
+  const params = await searchParams;
+  const rawQuery = getSingleSearchParam(params.q);
+  const parsedQuery = entrySearchSchema.safeParse(rawQuery);
+  const query = parsedQuery.success ? parsedQuery.data : undefined;
+  const noticeKey = getSingleSearchParam(params.notice);
+  const errorKey = getSingleSearchParam(params.error);
+  const noticeMessage =
+    noticeKey && noticeKey in noticeMessages
+      ? noticeMessages[noticeKey as keyof typeof noticeMessages]
+      : null;
+  const errorMessage =
+    errorKey && errorKey in errorMessages
+      ? errorMessages[errorKey as keyof typeof errorMessages]
+      : null;
+
+  const entries = await prisma.entry.findMany({
+    where: query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { participantName: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
+    orderBy: [{ updatedAt: "desc" }],
+    select: {
+      id: true,
+      name: true,
+      participantName: true,
+      totalScore: true,
+      updatedAt: true,
+    },
+  });
+
   return (
-    <ScaffoldPage
+    <PageShell
       title="Entries"
-      description="Admin entries list scaffold route."
-      surface="admin"
+      description="Manage bracket entries. Search, add, edit, and delete entries from this admin page."
     >
-      <div className="mb-4 flex items-center justify-between">
-        <div className="max-w-sm">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <form className="w-full max-w-sm" method="GET">
+          <label htmlFor="entry-search" className="mb-1 block text-sm font-medium text-slate-700">
+            Search
+          </label>
           <input
+            id="entry-search"
+            name="q"
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            placeholder="Search entries"
+            placeholder="Entry or participant name"
+            defaultValue={query ?? ""}
           />
-        </div>
+        </form>
+
         <Link
           href="/entries/new"
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
@@ -28,6 +98,18 @@ export default function EntriesPage() {
         </Link>
       </div>
 
+      {noticeMessage ? (
+        <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {noticeMessage}
+        </p>
+      ) : null}
+
+      {errorMessage ? (
+        <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {errorMessage}
+        </p>
+      ) : null}
+
       <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left">
@@ -35,32 +117,51 @@ export default function EntriesPage() {
               <th className="px-4 py-3 font-semibold">Entry</th>
               <th className="px-4 py-3 font-semibold">Participant</th>
               <th className="px-4 py-3 font-semibold">Score</th>
+              <th className="px-4 py-3 font-semibold">Updated</th>
               <th className="px-4 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {exampleEntries.map((entry) => (
-              <tr key={entry.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/bracket/${entry.id}`} className="font-medium">
-                    {entry.name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3">{entry.participant}</td>
-                <td className="px-4 py-3">{entry.score}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-3">
-                    <Link href={`/entries/${entry.id}/edit`}>Edit</Link>
-                    <button type="button" className="text-red-700">
-                      Delete
-                    </button>
-                  </div>
+            {entries.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-600">
+                  {query
+                    ? `No entries found for "${query}".`
+                    : "No entries yet. Add your first bracket entry."}
                 </td>
               </tr>
-            ))}
+            ) : (
+              entries.map((entry) => (
+                <tr key={entry.id}>
+                  <td className="px-4 py-3">
+                    <Link href={`/bracket/${entry.id}`} className="font-medium">
+                      {entry.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">{entry.participantName}</td>
+                  <td className="px-4 py-3">{entry.totalScore}</td>
+                  <td className="px-4 py-3">
+                    {new Intl.DateTimeFormat("en-US", {
+                      dateStyle: "medium",
+                    }).format(entry.updatedAt)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Link href={`/bracket/${entry.id}`}>View</Link>
+                      <Link href={`/entries/${entry.id}/edit`}>Edit</Link>
+                      <DeleteEntryButton
+                        entryId={entry.id}
+                        entryName={entry.name}
+                        query={query}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
-    </ScaffoldPage>
+    </PageShell>
   );
 }

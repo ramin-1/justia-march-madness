@@ -1,25 +1,19 @@
+import { createEntryAction } from "@/app/entries/actions";
 import { BracketPlaceholder } from "@/components/bracket-placeholder";
-import { ScaffoldPage } from "@/components/scaffold-page";
+import { EntryForm } from "@/components/entry-form";
+import { PageShell } from "@/components/page-shell";
 
 export default function NewEntryPage() {
   return (
-    <ScaffoldPage
+    <PageShell
       title="Add Bracket"
-      description="Admin entry creation scaffold route."
-      surface="admin"
+      description="Create a new bracket entry. Bracket picks remain a placeholder in this milestone."
     >
-      <div className="mb-6 grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium">Entry name</label>
-          <input className="w-full rounded-md border border-slate-300 px-3 py-2" />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">Participant name</label>
-          <input className="w-full rounded-md border border-slate-300 px-3 py-2" />
-        </div>
-      </div>
+      <EntryForm mode="create" submitAction={createEntryAction} />
 
-      <BracketPlaceholder mode="edit" />
-    </ScaffoldPage>
+      <div className="mt-8">
+        <BracketPlaceholder mode="edit" />
+      </div>
+    </PageShell>
   );
 }

@@ -1,22 +1,26 @@
-# Task: Milestone 2 - Database and Admin Authentication
+# Task: Milestone 3 - Entry CRUD
 
 ## Plan
-- [x] Re-read repo instructions/spec/tasks and workflow skill guidance before compatibility edits.
-- [x] Review current Prisma/auth scaffolding and Milestone 2 requirements.
-- [x] Set up Auth.js credentials configuration and auth route handlers.
-- [x] Protect admin routes (`/entries*`, `/admin/results`) while keeping public pages open.
-- [x] Convert `/login` into a working credentials login page.
-- [x] Ensure Prisma/PostgreSQL environment wiring is documented and production-friendly.
-- [x] Run verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm run dev`.
-- [x] Update review notes with Milestone 2 completion status.
+- [x] Re-read repo instructions/spec/tasks and workflow skill guidance for Milestone 3 scope.
+- [x] Inspect current entries/auth/prisma implementation and identify minimal gap to full CRUD.
+- [x] Add centralized Zod validation and server-side mutation actions for entry create/edit/delete.
+- [x] Replace entries list placeholder with Prisma-backed table, search/filter, and action links.
+- [x] Replace `/entries/new` and `/entries/[id]/edit` placeholders with working forms and user-friendly errors.
+- [x] Add delete confirmation flow and mutation feedback messaging.
+- [x] Keep admin protection/public route behavior intact and avoid Milestone 4+ work.
+- [x] Run verification: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update docs/task review notes for Milestone 3 behavior.
 
 ## Progress Notes
-- 2026-03-18 23:16 PDT - Reviewed Milestone 2 scope in `AGENTS.md`, `project_spec`, and `tasks/*`, then inspected existing auth/prisma scaffolding.
-- 2026-03-18 23:19 PDT - Added Auth.js credentials config (`auth.ts`), NextAuth route handler, and `proxy.ts` route protection for admin pages.
-- 2026-03-18 23:21 PDT - Replaced login placeholder with working credentials form using `next-auth/react` sign-in flow.
-- 2026-03-18 23:22 PDT - Updated environment/docs scaffolding for auth hash configuration and Milestone 2 route protection messaging.
-- 2026-03-18 23:28 PDT - Final verification passed: `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build`.
-- 2026-03-18 23:29 PDT - Dev/protection smoke tests passed: unauthenticated `/entries` and `/admin/results` now redirect to `/login?next=...`, while `/leaderboard` remains public.
+- 2026-03-19 00:03 PDT - Reviewed `AGENTS.md`, `project_spec`, `tasks/*`, and `.agents/skills/workflow-orchestration/SKILL.md`.
+- 2026-03-19 00:05 PDT - Audited current `entries` routes and found scaffold-only UI with hardcoded data and no CRUD persistence.
+- 2026-03-19 00:06 PDT - Confirmed Milestone 2 auth protection is already in place via `proxy.ts` for `/entries*` and `/admin/results`.
+- 2026-03-19 00:13 PDT - Added centralized entry validation and server actions for create/update/delete with Prisma persistence and mutation feedback.
+- 2026-03-19 00:17 PDT - Replaced entries/new/edit scaffold pages with real CRUD UI and wired delete confirmation + search/filter list behavior.
+- 2026-03-19 00:20 PDT - Build failed once due server-action export rules (`use server` file exported non-async object); fixed by moving action state constants/types to a separate file.
+- 2026-03-19 00:22 PDT - Final verification passed: `npm run typecheck`, `npm run lint`, and `npm run build`.
+- 2026-03-19 00:23 PDT - Updated README milestone status notes for Milestone 3 CRUD behavior.
+- 2026-03-19 00:25 PDT - Runtime smoke check confirms `/entries` redirects unauthenticated users to `/login?next=...` while `/leaderboard` remains public.
 
 ## Review
-Completed Milestone 2 scope: Prisma/PostgreSQL wiring is in place, Auth.js credentials login is active, and admin routes are protected via `proxy.ts` while public routes remain accessible. No Milestone 3+ feature work was added.
+Completed Milestone 3 with a minimal production-friendly CRUD flow for entries: database-backed list/search, create, edit, and delete with confirmation and validation/mutation error handling. Admin route protection remains in place and no Milestone 4+ features were introduced.
