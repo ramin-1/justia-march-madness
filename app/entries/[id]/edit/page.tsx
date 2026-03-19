@@ -1,5 +1,5 @@
 import { BracketPlaceholder } from "@/components/bracket-placeholder";
-import { PageShell } from "@/components/page-shell";
+import { ScaffoldPage } from "@/components/scaffold-page";
 
 export default async function EditEntryPage({
   params,
@@ -9,9 +9,10 @@ export default async function EditEntryPage({
   const { id } = await params;
 
   return (
-    <PageShell
+    <ScaffoldPage
       title={`Edit Entry: ${id}`}
-      description="Admin bracket editing flow."
+      description="Admin entry editing scaffold route."
+      surface="admin"
     >
       <div className="mb-6 grid gap-4 md:grid-cols-2">
         <div>
@@ -28,6 +29,6 @@ export default async function EditEntryPage({
       </div>
 
       <BracketPlaceholder mode="edit" entryName={id} />
-    </PageShell>
+    </ScaffoldPage>
   );
 }

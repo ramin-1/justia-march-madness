@@ -19,3 +19,12 @@ YYYY-MM-DD
 
 ### Concrete change made
 - ...
+
+---
+
+## 2026-03-18 - Communication
+
+**Mistake**: Proposed and kept temporary cookie-based middleware protection during Milestone 1 planning.
+**Pattern**: Added scope that belongs to a later milestone instead of honoring milestone boundaries strictly.
+**Rule**: For milestone-scoped scaffold tasks, avoid temporary auth or behavior hacks unless they are explicitly requested or required for build health.
+**Applied**: Removed `middleware.ts` gating and kept admin routes as clearly labeled placeholders until Milestone 2.

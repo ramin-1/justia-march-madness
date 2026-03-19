@@ -36,19 +36,19 @@ npm run dev
 - `AGENTS.md` - Codex instructions for working in this repository
 - `tasks/todo.md` - active execution plan for non-trivial work
 - `tasks/lessons.md` - recurring mistakes and guardrails
-- `.claude/skills/workflow-orchestration/` - vendored workflow skill reference used as the planning pattern
+- `.agents/skills/workflow-orchestration/` - vendored workflow skill reference used as the planning pattern
 
 ## Core routes
 
-- `/leaderboard`
-- `/bracket/[id]`
-- `/login`
-- `/entries`
-- `/entries/new`
-- `/entries/[id]/edit`
-- `/admin/results`
+- Public: `/leaderboard`, `/bracket/[id]`
+- Admin scaffolds: `/login`, `/entries`, `/entries/new`, `/entries/[id]/edit`, `/admin/results`
+
+## Milestone 1 status
+
+- Shared app shell and navigation are in place for all scaffold routes.
+- Admin routes are intentionally reachable placeholders in Milestone 1.
+- Full authentication and admin route protection are deferred to Milestone 2.
 
 ## Notes on result syncing
 
 Automated result syncing should be treated as an importer into the local `Game` table, not the source of truth itself. The admin results page remains the fallback whenever parsing or matching fails.
-

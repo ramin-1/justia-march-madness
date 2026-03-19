@@ -1,10 +1,11 @@
-import { PageShell } from "@/components/page-shell";
+import { ScaffoldPage } from "@/components/scaffold-page";
 
 export default function LoginPage() {
   return (
-    <PageShell
+    <ScaffoldPage
       title="Admin Login"
-      description="Placeholder login route for the protected admin area."
+      description="Login scaffold for the future protected admin area."
+      surface="auth"
     >
       <form className="max-w-md space-y-4 rounded-xl border bg-white p-6 shadow-sm">
         <div>
@@ -13,6 +14,7 @@ export default function LoginPage() {
             className="w-full rounded-md border border-slate-300 px-3 py-2"
             type="text"
             placeholder="admin"
+            disabled
           />
         </div>
         <div>
@@ -21,15 +23,17 @@ export default function LoginPage() {
             className="w-full rounded-md border border-slate-300 px-3 py-2"
             type="password"
             placeholder="••••••••"
+            disabled
           />
         </div>
         <button
-          type="submit"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+          type="button"
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-70"
+          disabled
         >
-          Sign in
+          Sign in (Milestone 2)
         </button>
       </form>
-    </PageShell>
+    </ScaffoldPage>
   );
 }

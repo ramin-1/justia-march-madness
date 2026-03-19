@@ -1,5 +1,5 @@
 import { BracketPlaceholder } from "@/components/bracket-placeholder";
-import { PageShell } from "@/components/page-shell";
+import { ScaffoldPage } from "@/components/scaffold-page";
 
 export default async function BracketViewPage({
   params,
@@ -9,11 +9,12 @@ export default async function BracketViewPage({
   const { id } = await params;
 
   return (
-    <PageShell
+    <ScaffoldPage
       title={`Bracket: ${id}`}
-      description="Public read-only bracket page."
+      description="Public read-only bracket scaffold route."
+      surface="public"
     >
       <BracketPlaceholder mode="view" entryName={id} />
-    </PageShell>
+    </ScaffoldPage>
   );
 }

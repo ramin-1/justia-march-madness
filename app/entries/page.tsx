@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageShell } from "@/components/page-shell";
+import { ScaffoldPage } from "@/components/scaffold-page";
 
 const exampleEntries = [
   { id: "demo-1", name: "Marketing Mayhem", participant: "Jordan", score: 24 },
@@ -8,9 +8,10 @@ const exampleEntries = [
 
 export default function EntriesPage() {
   return (
-    <PageShell
+    <ScaffoldPage
       title="Entries"
-      description="Admin list view for bracket entries. This route should be protected by authentication."
+      description="Admin entries list scaffold route."
+      surface="admin"
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="max-w-sm">
@@ -60,6 +61,6 @@ export default function EntriesPage() {
           </tbody>
         </table>
       </div>
-    </PageShell>
+    </ScaffoldPage>
   );
 }

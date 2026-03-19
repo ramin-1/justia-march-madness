@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageShell } from "@/components/page-shell";
+import { ScaffoldPage } from "@/components/scaffold-page";
 
 const exampleEntries = [
   { id: "demo-1", rank: 1, name: "Marketing Mayhem", participant: "Jordan", score: 24 },
@@ -8,9 +8,10 @@ const exampleEntries = [
 
 export default function LeaderboardPage() {
   return (
-    <PageShell
+    <ScaffoldPage
       title="Leaderboard"
-      description="Public standings page. Entry names should link to read-only bracket views."
+      description="Public standings scaffold. Entry names link to read-only bracket placeholders."
+      surface="public"
     >
       <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -38,6 +39,6 @@ export default function LeaderboardPage() {
           </tbody>
         </table>
       </div>
-    </PageShell>
+    </ScaffoldPage>
   );
 }

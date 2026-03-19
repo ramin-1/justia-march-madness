@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { calculateScore } from "@/lib/scoring";
+import { calculateScore, ROUND_POINTS, type RoundKey } from "@/lib/scoring";
 import { fetchNcaaScoresHtml, parseCompletedGames } from "./ncaa";
 import { isLikelyMatch } from "./matching";
+
+function isRoundKey(round: string): round is RoundKey {
+  return round in ROUND_POINTS;
+}
 
 export async function syncNcaaResults() {
   const startedAt = new Date();
@@ -51,6 +55,12 @@ export async function syncNcaaResults() {
     const resolvedGames = await prisma.game.findMany({
       select: { id: true, round: true, winnerTeam: true },
     });
+    const scorableGames = resolvedGames.filter(
+      (
+        game,
+      ): game is { id: string; round: RoundKey; winnerTeam: string | null } =>
+        isRoundKey(game.round),
+    );
 
     const entries = await prisma.entry.findMany();
 
@@ -61,7 +71,7 @@ export async function syncNcaaResults() {
           data: {
             totalScore: calculateScore(
               (entry.picksJson as Record<string, string | null | undefined>) ?? {},
-              resolvedGames as Array<{ id: string; round: any; winnerTeam: string | null }>,
+              scorableGames,
             ),
           },
         }),

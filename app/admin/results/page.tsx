@@ -1,4 +1,4 @@
-import { PageShell } from "@/components/page-shell";
+import { ScaffoldPage } from "@/components/scaffold-page";
 
 const exampleGames = [
   { id: "EAST_R1_G1", label: "East Round 1 Game 1", teams: ["Team A", "Team B"], status: "pending" },
@@ -7,9 +7,10 @@ const exampleGames = [
 
 export default function AdminResultsPage() {
   return (
-    <PageShell
+    <ScaffoldPage
       title="Results"
-      description="Protected admin page for manual game winners and sync monitoring."
+      description="Admin results management scaffold route."
+      surface="admin"
     >
       <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -22,6 +23,7 @@ export default function AdminResultsPage() {
           <button
             type="button"
             className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+            disabled
           >
             Run Sync
           </button>
@@ -44,7 +46,7 @@ export default function AdminResultsPage() {
             <div className="grid gap-3 md:grid-cols-2">
               {game.teams.map((team) => (
                 <label key={team} className="flex items-center gap-3 rounded-lg border p-3">
-                  <input type="radio" name={game.id} />
+                  <input type="radio" name={game.id} disabled />
                   <span>{team}</span>
                 </label>
               ))}
@@ -52,6 +54,6 @@ export default function AdminResultsPage() {
           </div>
         ))}
       </div>
-    </PageShell>
+    </ScaffoldPage>
   );
 }

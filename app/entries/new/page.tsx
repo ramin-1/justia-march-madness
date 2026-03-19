@@ -1,11 +1,12 @@
 import { BracketPlaceholder } from "@/components/bracket-placeholder";
-import { PageShell } from "@/components/page-shell";
+import { ScaffoldPage } from "@/components/scaffold-page";
 
 export default function NewEntryPage() {
   return (
-    <PageShell
+    <ScaffoldPage
       title="Add Bracket"
-      description="Admin entry creation flow."
+      description="Admin entry creation scaffold route."
+      surface="admin"
     >
       <div className="mb-6 grid gap-4 md:grid-cols-2">
         <div>
@@ -19,6 +20,6 @@ export default function NewEntryPage() {
       </div>
 
       <BracketPlaceholder mode="edit" />
-    </PageShell>
+    </ScaffoldPage>
   );
 }

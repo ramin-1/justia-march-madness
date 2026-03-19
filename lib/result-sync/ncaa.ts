@@ -28,7 +28,9 @@ export async function fetchNcaaScoresHtml(): Promise<string> {
   return response.text();
 }
 
-export function parseCompletedGames(_html: string): ScrapedResult[] {
+export function parseCompletedGames(html: string): ScrapedResult[] {
+  void html;
+
   /**
    * Placeholder parser.
    *
