@@ -1,3 +1,5 @@
+export const DEFAULT_ADMIN_REDIRECT_PATH = "/entries";
+
 export function getAdminUsername() {
   return process.env.ADMIN_USERNAME ?? "admin";
 }
@@ -10,4 +12,16 @@ export function requireConfiguredAdminPasswordHash() {
   }
 
   return hash;
+}
+
+export function getSafeAdminRedirectPath(nextPath: string | null | undefined) {
+  if (!nextPath) {
+    return DEFAULT_ADMIN_REDIRECT_PATH;
+  }
+
+  if (!nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return DEFAULT_ADMIN_REDIRECT_PATH;
+  }
+
+  return nextPath;
 }

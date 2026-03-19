@@ -43,11 +43,25 @@ npm run dev
 - Public: `/leaderboard`, `/bracket/[id]`
 - Admin scaffolds: `/login`, `/entries`, `/entries/new`, `/entries/[id]/edit`, `/admin/results`
 
-## Milestone 1 status
+## Milestone 2 status
 
 - Shared app shell and navigation are in place for all scaffold routes.
-- Admin routes are intentionally reachable placeholders in Milestone 1.
-- Full authentication and admin route protection are deferred to Milestone 2.
+- Admin routes are now protected by Auth.js credentials login.
+- Prisma is wired to PostgreSQL via `DATABASE_URL` in environment config.
+
+## Admin auth setup
+
+- Set `AUTH_SECRET` in `.env`.
+- Set `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` in `.env`.
+- `ADMIN_PASSWORD_HASH` should be a bcrypt hash stored in `.env`.
+- Next.js expands `$` values in `.env`, so escape literal dollar signs in bcrypt hashes as `\$`.
+- Example:
+
+```env
+ADMIN_PASSWORD_HASH="\$2b\$10\$..."
+```
+
+- After starting the app, use `/login` and sign in to access `/entries*` and `/admin/results`.
 
 ## Notes on result syncing
 

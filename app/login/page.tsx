@@ -1,39 +1,33 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { AdminLoginForm } from "@/components/admin-login-form";
 import { ScaffoldPage } from "@/components/scaffold-page";
+import { getAdminUsername, getSafeAdminRedirectPath } from "@/lib/auth/config";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ next?: string | string[] }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const nextParam = Array.isArray(params.next) ? params.next[0] : params.next;
+  const safeNextPath = getSafeAdminRedirectPath(nextParam);
+  const session = await auth();
+
+  if (session) {
+    redirect(safeNextPath);
+  }
+
   return (
     <ScaffoldPage
       title="Admin Login"
-      description="Login scaffold for the future protected admin area."
+      description="Credentials-based admin login for protected routes."
       surface="auth"
     >
-      <form className="max-w-md space-y-4 rounded-xl border bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1 block text-sm font-medium">Username</label>
-          <input
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
-            type="text"
-            placeholder="admin"
-            disabled
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">Password</label>
-          <input
-            className="w-full rounded-md border border-slate-300 px-3 py-2"
-            type="password"
-            placeholder="••••••••"
-            disabled
-          />
-        </div>
-        <button
-          type="button"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-70"
-          disabled
-        >
-          Sign in (Milestone 2)
-        </button>
-      </form>
+      <AdminLoginForm
+        defaultUsername={getAdminUsername()}
+        callbackUrl={safeNextPath}
+      />
     </ScaffoldPage>
   );
 }

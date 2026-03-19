@@ -9,7 +9,7 @@ const navSections = [
     ],
   },
   {
-    label: "Admin Placeholders",
+    label: "Admin (Protected)",
     links: [
       { href: "/login", label: "Admin Login" },
       { href: "/entries", label: "Admin Entries" },

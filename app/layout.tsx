@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 March Madness Company Challenge
               </Link>
               <p className="text-xs text-slate-500">
-                Milestone 1 scaffold: public pages + admin placeholders
+                Milestone 2: public pages + protected admin routes
               </p>
             </div>
             <SiteNav />
