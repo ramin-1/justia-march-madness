@@ -27,13 +27,24 @@ npx skills add vxcozy/workflow-orchestration
 
 **Personal (all projects):**
 ```bash
-git clone https://github.com/vxcozy/workflow-orchestration ~/.claude/skills/workflow-orchestration
+git clone https://github.com/vxcozy/workflow-orchestration ~/.agents/skills/workflow-orchestration
 ```
 
 **Project-specific:**
 ```bash
-git clone https://github.com/vxcozy/workflow-orchestration .claude/skills/workflow-orchestration
+git clone https://github.com/vxcozy/workflow-orchestration .agents/skills/workflow-orchestration
 ```
+
+
+## Codex placement
+
+For Codex to auto-discover this skill inside a repository, place the folder at:
+
+```bash
+<repo-root>/.agents/skills/workflow-orchestration
+```
+
+Codex discovers repo-local skills from `.agents/skills` and loads `SKILL.md` from the skill directory.
 
 ## Usage
 
