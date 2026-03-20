@@ -1,4 +1,4 @@
-import { updateGameResultAction } from "@/app/admin/results/actions";
+import { runNcaaSyncAction, updateGameResultAction } from "@/app/admin/results/actions";
 import { AdminResultGameCard } from "@/components/admin-result-game-card";
 import { PageShell } from "@/components/page-shell";
 import {
@@ -21,6 +21,32 @@ type GameRow = GameResultRow & {
   region: string | null;
   slotLabel: string;
 };
+
+function formatDateTime(value: Date | null): string {
+  if (!value) {
+    return "n/a";
+  }
+
+  return value.toLocaleString();
+}
+
+function readSummaryNumber(summary: unknown, key: string): number | null {
+  if (typeof summary !== "object" || summary === null) {
+    return null;
+  }
+
+  const value = (summary as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isFinite(value) ? Math.trunc(value) : null;
+}
+
+function readSummaryString(summary: unknown, key: string): string | null {
+  if (typeof summary !== "object" || summary === null) {
+    return null;
+  }
+
+  const value = (summary as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
 
 function normalizeNonEmptyString(value: string | null | undefined): string | null {
   if (typeof value !== "string") {
@@ -154,17 +180,60 @@ function groupGamesByRegion(games: GameRow[]) {
 export default async function AdminResultsPage() {
   const rounds = getTemplateRoundConfigs("MAIN");
 
-  const games = await prisma.game.findMany({
-    select: {
-      ...SCORE_GAME_RESULT_SELECT,
-      round: true,
-      region: true,
-      slotLabel: true,
-    },
-  });
+  const [games, latestSyncRun] = await Promise.all([
+    prisma.game.findMany({
+      select: {
+        ...SCORE_GAME_RESULT_SELECT,
+        round: true,
+        region: true,
+        slotLabel: true,
+      },
+    }),
+    prisma.syncRun.findFirst({
+      where: { source: "ncaa" },
+      orderBy: { startedAt: "desc" },
+      select: {
+        status: true,
+        startedAt: true,
+        finishedAt: true,
+        summaryJson: true,
+      },
+    }),
+  ]);
   const gameRows = games as GameRow[];
   const gameById = new Map<string, GameRow>(gameRows.map((game) => [game.id, game]));
   const completedPicksByGameId = buildCompletedPicksByGameId(gameRows);
+  const latestSyncSourceUrl = readSummaryString(latestSyncRun?.summaryJson, "sourceUrl");
+  const latestSyncSourceMode = readSummaryString(latestSyncRun?.summaryJson, "sourceMode");
+  const latestParsedGames = readSummaryNumber(latestSyncRun?.summaryJson, "parsedGames");
+  const latestParserPath = readSummaryString(latestSyncRun?.summaryJson, "parserPath");
+  const latestJsonBlocksFound = readSummaryNumber(latestSyncRun?.summaryJson, "jsonBlocksFound");
+  const latestJsonCandidates = readSummaryNumber(latestSyncRun?.summaryJson, "jsonCandidates");
+  const latestHtmlFallbackCandidates = readSummaryNumber(
+    latestSyncRun?.summaryJson,
+    "htmlFallbackCandidates",
+  );
+  const latestHtmlFallbackParsedCandidates = readSummaryNumber(
+    latestSyncRun?.summaryJson,
+    "htmlFallbackParsedCandidates",
+  );
+  const latestNormalizedParsedGames = readSummaryNumber(
+    latestSyncRun?.summaryJson,
+    "normalizedParsedGames",
+  );
+  const latestParsedGamesWithRegion = readSummaryNumber(
+    latestSyncRun?.summaryJson,
+    "parsedGamesWithRegion",
+  );
+  const latestParsedGamesMissingRegion = readSummaryNumber(
+    latestSyncRun?.summaryJson,
+    "parsedGamesMissingRegion",
+  );
+  const latestMatchedGames = readSummaryNumber(latestSyncRun?.summaryJson, "matchedGames");
+  const latestUpdatedGames = readSummaryNumber(latestSyncRun?.summaryJson, "updatedGames");
+  const latestUnmatchedGames = readSummaryNumber(latestSyncRun?.summaryJson, "unmatchedGames");
+  const latestAmbiguousGames = readSummaryNumber(latestSyncRun?.summaryJson, "ambiguousGames");
+  const latestSkippedGames = readSummaryNumber(latestSyncRun?.summaryJson, "skippedGames");
 
   return (
     <PageShell
@@ -175,6 +244,60 @@ export default async function AdminResultsPage() {
         Mark a game as <span className="font-semibold">Final</span> when winner and scores are known.
         Saving a result triggers standings recalculation for Main, Second Chance, and Championship
         leaderboards.
+      </div>
+
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">NCAA Sync</h2>
+            <p className="text-sm text-slate-600">
+              Pull today&apos;s completed NCAA games into canonical `Game` rows using final-only status
+              semantics.
+            </p>
+          </div>
+
+          <form action={runNcaaSyncAction}>
+            <button
+              type="submit"
+              className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Sync NCAA Results
+            </button>
+          </form>
+        </div>
+
+        <div className="mt-3 space-y-1 text-xs text-slate-600">
+          {latestSyncRun ? (
+            <>
+              <p>
+                Last run: <span className="font-medium text-slate-800">{latestSyncRun.status}</span> •{" "}
+                started {formatDateTime(latestSyncRun.startedAt)} • finished{" "}
+                {formatDateTime(latestSyncRun.finishedAt)}
+              </p>
+              <p>
+                Parsed: {latestParsedGames ?? "n/a"} • Matched: {latestMatchedGames ?? "n/a"} • Updated:{" "}
+                {latestUpdatedGames ?? "n/a"} • Unmatched: {latestUnmatchedGames ?? "n/a"} • Ambiguous:{" "}
+                {latestAmbiguousGames ?? "n/a"} • Skipped: {latestSkippedGames ?? "n/a"}
+              </p>
+              <p>
+                Parser: {latestParserPath ?? "n/a"} • JSON blocks: {latestJsonBlocksFound ?? "n/a"} •
+                JSON candidates: {latestJsonCandidates ?? "n/a"} • HTML fallback candidates:{" "}
+                {latestHtmlFallbackCandidates ?? "n/a"} • HTML parsed:{" "}
+                {latestHtmlFallbackParsedCandidates ?? "n/a"} • Normalized parsed:{" "}
+                {latestNormalizedParsedGames ?? "n/a"}
+              </p>
+              <p>
+                Parsed with region: {latestParsedGamesWithRegion ?? "n/a"} • Parsed missing region:{" "}
+                {latestParsedGamesMissingRegion ?? "n/a"}
+              </p>
+              <p>
+                Source URL: {latestSyncSourceUrl ?? "n/a"} ({latestSyncSourceMode ?? "n/a"})
+              </p>
+            </>
+          ) : (
+            <p>No NCAA sync runs yet.</p>
+          )}
+        </div>
       </div>
 
       <div className="space-y-8">

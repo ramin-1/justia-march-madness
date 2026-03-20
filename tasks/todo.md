@@ -304,3 +304,85 @@ Visual post-submit reset bug is fixed. After saving a game result, the card now 
 
 ## Review
 This follow-up is complete and tightly scoped to the visual sync bug. Cards now sync from canonical saved action payload values immediately after save, while existing result persistence and standings recalculation behavior remain unchanged.
+
+---
+
+# Task: Milestone 7 - NCAA Result Sync
+
+## Plan
+- [x] Re-read `AGENTS.md`, `PROJECT_SPEC.md`, multi-bracket alignment notes, `tasks/*`, and workflow skill guidance.
+- [x] Audit existing sync/parser/matching/standings/admin-results code to identify exact Milestone 7 gaps.
+- [x] Implement NCAA source fetch behavior for daily scores page usage with safe URL handling.
+- [x] Implement robust completed-game parsing (teams, seeds, scores, winner, status) from NCAA scores HTML payloads.
+- [x] Implement deterministic canonical mapping (including explicit First Four hardcoded mapping) and safe unmatched/ambiguous handling.
+- [x] Update sync persistence flow for idempotent canonical `Game` updates, final-only status semantics, and score/winner/team-field writes.
+- [x] Ensure standings recalculation and SyncRun logging/failure summaries remain correct and useful.
+- [x] Add/adjust minimal admin-facing sync trigger/status surface required for Milestone 7 without overbuilding UI.
+- [x] Run verification: `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update progress/review notes with assumptions and any remaining gaps.
+
+## Progress Notes
+- 2026-03-20 09:18 PDT - Re-read required files (`AGENTS.md`, `PROJECT_SPEC.md`, `docs/multi-bracket-alignment.md`, `tasks/*`, `.agents/skills/workflow-orchestration/SKILL.md`) and summarized Milestone 7 requirements before coding.
+- 2026-03-20 09:20 PDT - Audited current sync implementation: parser is placeholder, matching is only team-name set compare, sync writes winner only (no score parsing), and API trigger lacks explicit auth checks; existing standings recalculation + SyncRun model are reusable.
+- 2026-03-20 09:35 PDT - Implemented NCAA fetch URL handling with daily date-based source defaults and optional env overrides (`NCAA_SCORES_URL`, `NCAA_SCORES_BASE_URL`, `NCAA_SCORES_DATE`, `NCAA_SCORES_TIMEZONE`).
+- 2026-03-20 09:46 PDT - Replaced placeholder parser with JSON-script extraction + final-game parsing that captures teams, seeds, scores, winner, round, and region metadata.
+- 2026-03-20 09:57 PDT - Added deterministic canonical matching with explicit First Four hardcoded matchup mapping and safe ambiguous/unmatched handling.
+- 2026-03-20 10:11 PDT - Reworked sync persistence to update canonical `Game` rows idempotently (`status: final`, participants, winner key, scores), skip unsafe writes, and keep SyncRun summaries actionable.
+- 2026-03-20 10:16 PDT - Added minimal admin-facing NCAA sync control/status panel on `/admin/results` and secured `/api/results/sync` with Auth.js session check.
+- 2026-03-20 10:22 PDT - Verification complete: `npm run db:generate`, `npm run typecheck`, `npm run lint`, `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Milestone 7 is implemented in a tightly scoped way on top of the existing canonical multi-bracket architecture. NCAA sync now parses completed games with scores, maps results to canonical game IDs using explicit deterministic rules (including hardcoded First Four matchups), writes idempotent final-only updates into local `Game` rows, logs rich SyncRun summaries, recalculates standings, and exposes a narrow admin trigger/status panel without replacing the existing manual `/admin/results` override flow.
+
+---
+
+# Task: Milestone 7 Follow-Up - NCAA Parser Zero-Result Bug
+
+## Plan
+- [x] Re-read required project/workflow docs and inspect sync parser + matching + service files.
+- [x] Identify the exact reason `parseCompletedGames()` returns zero results on NCAA scores pages.
+- [x] Keep existing JSON parsing and add an HTML-content fallback parser for completed games.
+- [x] Preserve existing matching and sync persistence architecture, adding only parser-compatible debug fields.
+- [x] Add debug-friendly SyncRun summary metrics to show parser path and candidate counts.
+- [x] Run verification checks for this scoped fix.
+- [x] Update progress/review notes and lessons.
+
+## Progress Notes
+- 2026-03-20 11:15 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `tasks/*`, and `.agents/skills/workflow-orchestration/SKILL.md` before implementing this bug fix.
+- 2026-03-20 11:18 PDT - Root cause confirmed: `lib/result-sync/ncaa.ts` only parsed JSON script blocks (`application/json`, `application/ld+json`, `__NEXT_DATA__`), while NCAA scores game lines are available in rendered anchor text on the page; this caused `parseCompletedGames()` to return zero when JSON blocks lacked usable game payloads.
+- 2026-03-20 11:28 PDT - Added layered parsing in `ncaa.ts`: keep JSON extraction first, then fallback to parsing `FINAL ...` game lines from HTML anchor text (teams, seeds, scores, winner, round, region).
+- 2026-03-20 11:31 PDT - Wired parser diagnostics into sync summaries (`parserPath`, JSON block/candidate counts, HTML fallback candidate/parsed counts, normalized parsed count) and surfaced them on `/admin/results`.
+- 2026-03-20 11:34 PDT - Added sync source mode diagnostics (`override-url` vs `date-builder`) to make `NCAA_SCORES_URL` pinning visible in run summaries.
+- 2026-03-20 11:41 PDT - Fixed `NCAA_SCORES_DATE` off-by-one behavior by treating explicit `YYYY-MM-DD` overrides as literal date parts (instead of UTC-midnight conversion shifted by timezone formatting).
+- 2026-03-20 11:49 PDT - Confirmed `NCAA_SCORES_URL` root override can pin runs to a non-date URL; added automatic date-path expansion for base-score overrides (`sourceMode: override-base-url`) while preserving full URL override behavior.
+- 2026-03-20 11:58 PDT - Verification complete: `npm run typecheck`, `npm run lint`, `npm run build` plus live NCAA parser smoke tests (`NCAA_SCORES_DATE=2026-03-18` and `2026-03-19`) showing non-zero parsed counts via HTML fallback.
+
+## Review
+Follow-up fix is scoped to parser extraction reliability and sync observability. The architecture remains unchanged: JSON parsing is still used when available, HTML fallback is used when JSON yields no completed games, and downstream deterministic matching + canonical `Game` updates remain intact.
+
+---
+
+# Task: Milestone 7 Follow-Up - March 19 West/Midwest Ambiguities
+
+## Plan
+- [x] Re-read required docs and inspect `ncaa.ts`, `matching.ts`, and `sync-service.ts`.
+- [x] Reproduce March 19 ambiguity output and inspect parsed region values for affected matchups.
+- [x] Apply the smallest fix so Midwest region values are not collapsed into West during normalization.
+- [x] Add minimal parser diagnostics for region extraction confidence.
+- [x] Re-run sync checks for March 19 and regression dates (March 17/18).
+- [x] Run `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-20 13:03 PDT - Reproduced current behavior with `NCAA_SCORES_DATE=2026-03-19 npm run sync:results`; ambiguities matched the reported six West/Midwest collisions.
+- 2026-03-20 13:06 PDT - Inspected fallback anchor text from the NCAA page and confirmed region text exists on those rows (`... WEST REGION` / `... MIDWEST REGION`).
+- 2026-03-20 13:10 PDT - Identified exact bug: region normalization checked `\"west\"` before `\"midwest\"` in both `lib/result-sync/ncaa.ts` and `lib/result-sync/matching.ts`, collapsing Midwest into West.
+- 2026-03-20 13:12 PDT - Applied narrow normalization-order fix (check `midwest` before `west`) in parser and matcher.
+- 2026-03-20 13:15 PDT - Added minimal sync debug fields for region extraction confidence: `parsedGamesWithRegion`, `parsedGamesMissingRegion`, and `parsedRegionSamples`.
+- 2026-03-20 13:18 PDT - Re-verified sync runs:
+  - `2026-03-19`: `ambiguousGames: 0`, `matchedGames: 16`
+  - `2026-03-18`: no regressions (`matchedGames: 2`, `ambiguousGames: 0`)
+  - `2026-03-17`: no regressions (`matchedGames: 2`, `ambiguousGames: 0`)
+- 2026-03-20 13:22 PDT - Verification complete: `npm run typecheck`, `npm run lint`, `npm run build`.
+
+## Review
+Follow-up complete with a narrow, production-friendly fix. The West/Midwest ambiguity set is resolved without rewriting matching logic, fallback parsing remains JSON-first + HTML fallback, and sync summaries now include small region diagnostics to make extraction confidence easier to verify.

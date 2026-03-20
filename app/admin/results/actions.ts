@@ -8,6 +8,7 @@ import type { PicksByGameId } from "@/lib/brackets/types";
 import { prisma } from "@/lib/prisma";
 import { parseGameResultUpdateFormData } from "@/lib/results/validation";
 import { normalizeGameResultStatus } from "@/lib/results/status";
+import { syncNcaaResults } from "@/lib/result-sync/sync-service";
 import { createGameResultsIndex, type GameResultRow } from "@/lib/scoring";
 import { recalculateEntryStandings, SCORE_GAME_RESULT_SELECT } from "@/lib/standings";
 
@@ -211,4 +212,16 @@ export async function updateGameResultAction(
         }
       : undefined,
   };
+}
+
+export async function runNcaaSyncAction() {
+  try {
+    await syncNcaaResults();
+  } catch (error) {
+    console.error("NCAA sync failed from admin trigger:", error);
+  }
+
+  revalidatePath("/admin/results");
+  revalidatePath("/leaderboard");
+  revalidatePath("/entries");
 }

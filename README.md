@@ -77,3 +77,14 @@ ADMIN_PASSWORD_HASH="\$2b\$10\$..."
 ## Notes on result syncing
 
 Automated result syncing should be treated as an importer into the local `Game` table, not the source of truth itself. The admin results page remains the fallback whenever parsing or matching fails.
+
+- Source defaults to today’s NCAA scores page using:
+  - `https://www.ncaa.com/march-madness-live/scores/YYYY/MM/DD`
+- Optional overrides for local testing:
+  - `NCAA_SCORES_URL` (full URL override)
+  - `NCAA_SCORES_BASE_URL` (base URL override)
+  - `NCAA_SCORES_DATE` (`YYYY-MM-DD` run date)
+  - `NCAA_SCORES_TIMEZONE` (defaults to `America/New_York`)
+- Run manually:
+  - `npm run sync:results`
+- Admin can also trigger sync from `/admin/results`.

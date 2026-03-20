@@ -63,3 +63,17 @@ YYYY-MM-DD
 **Pattern**: Relying on local form state alone without an authoritative post-mutation payload to reconcile UI state after server action lifecycle updates.
 **Rule**: For server-action mutation UIs where immediate post-save accuracy matters, return canonical persisted fields from the action and sync the client state from that success payload.
 **Applied**: Extended admin result action-state with `savedValues`, returned persisted game fields from `updateGameResultAction`, and synced card state from successful action responses.
+
+## 2026-03-20 - NCAA Sync Parsing Layer Choice
+
+**Mistake**: Implemented the NCAA parser to rely primarily on JSON script payload extraction without confirming the scores page consistently exposes completed games there.
+**Pattern**: Parsing an assumed data layer instead of validating the real rendered content source used in production pages.
+**Rule**: For website scraping sync jobs, use layered extraction (structured payload first, rendered HTML fallback) and add parser-path diagnostics to SyncRun summaries so zero-parse failures are immediately diagnosable.
+**Applied**: Added HTML anchor-text fallback parsing for `FINAL` score lines, retained JSON-first parsing, and logged parser-path/candidate counts in sync run summaries.
+
+## 2026-03-20 - Region Normalization Substring Collision
+
+**Mistake**: Region normalization checked `"west"` before `"midwest"`, causing `Midwest` values to be normalized incorrectly as `West`.
+**Pattern**: Using `includes()` checks with overlapping substrings in the wrong order.
+**Rule**: In normalization functions with overlapping tokens, always match the more specific token first (for example `midwest` before `west`) and keep parser + matcher normalization behavior aligned.
+**Applied**: Reordered region normalization checks in both NCAA parsing and canonical matching code, then verified March 19 West/Midwest ambiguities dropped to zero.
