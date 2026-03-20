@@ -25,6 +25,8 @@ model Entry {
   maxPossibleScore Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@unique([participantName, bracketType], map: "Entry_participantName_bracketType_key")
 }
 
 model Game {

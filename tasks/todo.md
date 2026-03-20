@@ -433,3 +433,48 @@ Follow-up complete and tightly scoped. Bracket UI now prefers actual known team 
 
 ## Review
 Bug fix complete. Root cause was both read-path wiring and revalidation scope. Manual team-slot assignments now flow through the centralized label resolver for all bracket team options, and route cache invalidation now covers the create/edit/view bracket surfaces that display those labels.
+
+---
+
+# Task: Bracket View Pick Outcome Styling + Actual Winner Display
+
+## Plan
+- [x] Re-read required files and confirm where bracket view currently styles selected picks and renders `Winner:` text.
+- [x] Update bracket view data wiring to provide canonical game outcome status/winner to the view renderer.
+- [x] Update view-mode team-row styling to distinguish correct/incorrect/pending selected picks using final-only semantics.
+- [x] Update `Winner:` display to show actual final winner only (omit for non-final games).
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update progress/review notes.
+
+## Progress Notes
+- 2026-03-20 15:04 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `tasks/*`, and inspected current bracket view implementation (`app/bracket/[id]/page.tsx` + `components/bracket-editor.tsx`) along with final-status helper usage.
+- 2026-03-20 15:06 PDT - Confirmed exact current behavior bug: in view mode selected rows are always green if picked, and `Winner:` shows the selected pick instead of canonical game winner/result state.
+- 2026-03-20 15:10 PDT - Updated bracket view data wiring in `app/bracket/[id]/page.tsx` to pass canonical `Game` status/winner data into `BracketEditor` for view-mode outcome-aware rendering.
+- 2026-03-20 15:13 PDT - Updated `BracketEditor` view-mode styling logic: selected rows are now green only for correct final picks, red for incorrect final picks, and neutral for non-final/unknown outcomes.
+- 2026-03-20 15:14 PDT - Updated view `Winner:` line to render only when a game is final and to show the actual game winner (canonical result), not the entry pick.
+- 2026-03-20 15:17 PDT - Verification passed: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack port/process restrictions).
+
+## Review
+Bracket-view-only behavior fix complete. The read-only bracket now compares user picks against canonical final game outcomes for row styling and displays actual winners only when games are final, without changing pick storage, scoring, sync, results management, or bracket topology.
+
+---
+
+# Task: Prevent Duplicate Brackets Per Participant + Bracket Type
+
+## Plan
+- [x] Re-read required files and confirm current participant identity + uniqueness source of truth.
+- [x] Add server-side duplicate protection for create and update flows with friendly form errors.
+- [x] Add DB-level uniqueness constraint for `Entry(participantName, bracketType)` to prevent race-condition duplicates.
+- [x] Keep edit flow self-safe (no false conflict with the same record).
+- [x] Verify with `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update progress/review notes.
+
+## Progress Notes
+- 2026-03-20 15:30 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, and inspected `prisma/schema.prisma`, entry actions/validation/UI flow. Confirmed participant identity source is `Entry.participantName`, with no current participant+type uniqueness checks.
+- 2026-03-20 15:35 PDT - Added server-side duplicate guards in `app/entries/actions.ts` for both create and update flows (update excludes current entry id), plus friendly form-state errors when duplicates are attempted.
+- 2026-03-20 15:36 PDT - Added race-condition protection by handling Prisma `P2002` unique violations in create/update actions and mapping those to the same friendly duplicate message.
+- 2026-03-20 15:37 PDT - Added DB-level composite uniqueness on `Entry(participantName, bracketType)` in schema + migration `20260320162000_entry_participant_bracket_type_unique`.
+- 2026-03-20 15:40 PDT - Verification passed: `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack port/process restrictions).
+
+## Review
+Duplicate bracket creation for the same participant + bracket type is now blocked at both application and database layers while preserving valid cross-type entries (one MAIN + one SECOND_CHANCE_S16 + one CHAMPIONSHIP). Update flow remains self-safe and returns friendly errors instead of raw DB exceptions.

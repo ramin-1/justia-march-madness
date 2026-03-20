@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { EntryFormState } from "@/app/entries/action-state";
+import type { BracketType } from "@/lib/brackets/types";
 import { prisma } from "@/lib/prisma";
 import {
   buildEntryName,
@@ -11,6 +12,7 @@ import {
   entrySearchSchema,
   entryTypeFilterSchema,
   getFormStringValue,
+  getBracketTypeLabel,
   parseEntryFormData,
 } from "@/lib/entries/validation";
 import { computeEntryScoreFields } from "@/lib/standings";
@@ -50,6 +52,66 @@ function isPrismaRecordNotFoundError(error: unknown) {
   );
 }
 
+function isPrismaParticipantBracketTypeUniqueError(error: unknown) {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  if (Array.isArray(target)) {
+    return target.includes("participantName") && target.includes("bracketType");
+  }
+
+  if (typeof target === "string") {
+    return (
+      target.includes("Entry_participantName_bracketType_key") ||
+      (target.includes("participantName") && target.includes("bracketType"))
+    );
+  }
+
+  return false;
+}
+
+function buildDuplicateEntryFormState(options: {
+  participantName: string;
+  bracketType: BracketType;
+}): EntryFormState {
+  return {
+    message: `${options.participantName} already has a ${getBracketTypeLabel(options.bracketType)}. Each participant can only have one entry per bracket type.`,
+    fieldErrors: {
+      participantName: ["This participant already has this bracket type."],
+    },
+  };
+}
+
+async function hasDuplicateEntry(options: {
+  participantName: string;
+  bracketType: BracketType;
+  excludeEntryId?: string;
+}) {
+  const duplicateEntry = await prisma.entry.findFirst({
+    where: {
+      participantName: options.participantName,
+      bracketType: options.bracketType,
+      ...(options.excludeEntryId
+        ? {
+            id: {
+              not: options.excludeEntryId,
+            },
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(duplicateEntry);
+}
+
 function revalidateEntryPaths(entryId?: string) {
   revalidatePath("/entries");
   revalidatePath("/entries/new");
@@ -71,6 +133,18 @@ export async function createEntryAction(
       message: parsedFormData.message,
       fieldErrors: parsedFormData.fieldErrors,
     };
+  }
+
+  const duplicateEntryExists = await hasDuplicateEntry({
+    participantName: parsedFormData.data.participantName,
+    bracketType: parsedFormData.data.bracketType,
+  });
+
+  if (duplicateEntryExists) {
+    return buildDuplicateEntryFormState({
+      participantName: parsedFormData.data.participantName,
+      bracketType: parsedFormData.data.bracketType,
+    });
   }
 
   try {
@@ -97,7 +171,14 @@ export async function createEntryAction(
         ...scoreFields,
       },
     });
-  } catch {
+  } catch (error) {
+    if (isPrismaParticipantBracketTypeUniqueError(error)) {
+      return buildDuplicateEntryFormState({
+        participantName: parsedFormData.data.participantName,
+        bracketType: parsedFormData.data.bracketType,
+      });
+    }
+
     return {
       message: "Unable to create the entry right now. Please try again.",
     };
@@ -146,6 +227,19 @@ export async function updateEntryAction(
     };
   }
 
+  const duplicateEntryExists = await hasDuplicateEntry({
+    participantName: parsedFormData.data.participantName,
+    bracketType: parsedFormData.data.bracketType,
+    excludeEntryId: parsedEntryId.data,
+  });
+
+  if (duplicateEntryExists) {
+    return buildDuplicateEntryFormState({
+      participantName: parsedFormData.data.participantName,
+      bracketType: parsedFormData.data.bracketType,
+    });
+  }
+
   try {
     const scoreFields = await computeEntryScoreFields({
       bracketType: parsedFormData.data.bracketType,
@@ -176,6 +270,13 @@ export async function updateEntryAction(
       return {
         message: "That entry no longer exists.",
       };
+    }
+
+    if (isPrismaParticipantBracketTypeUniqueError(error)) {
+      return buildDuplicateEntryFormState({
+        participantName: parsedFormData.data.participantName,
+        bracketType: parsedFormData.data.bracketType,
+      });
     }
 
     return {

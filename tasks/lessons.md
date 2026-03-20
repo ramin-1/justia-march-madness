@@ -84,3 +84,10 @@ YYYY-MM-DD
 **Pattern**: Applying centralized display logic only on dependency-derived winners and forgetting static/fallback option branches and dynamic-route cache invalidation.
 **Rule**: When adding a centralized label override resolver, apply it to every return path that emits team options, and revalidate all consuming route patterns (including dynamic pages) after admin writes.
 **Applied**: Updated `getAvailableTeamsForGame()` to resolve labels across all branches and expanded `/admin/team-slots` revalidation to include `/entries` layout, `/entries/[id]/edit`, and `/bracket/[id]`.
+
+## 2026-03-20 - Bracket View Pick vs Actual Result Semantics
+
+**Mistake**: Reused selected-pick presentation semantics in read-only bracket view, causing selected teams to appear as winners (green + `Winner:` text) even when actual game results differed or were still pending.
+**Pattern**: Coupling view-state styling/text to user picks without comparing canonical game outcome status + actual winner.
+**Rule**: In read-only bracket views, derive outcome styling and winner display from canonical final game results; treat picks as predictions that can be correct, incorrect, or pending.
+**Applied**: Added final-status-aware outcome comparison in `BracketEditor` view mode and changed `Winner:` to render only actual final winners from canonical `Game` data.

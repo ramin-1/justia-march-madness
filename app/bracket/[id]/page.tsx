@@ -29,7 +29,28 @@ export default async function BracketViewPage({
   const normalizedPicksJson = normalizeEntryPicksJson(entry.picksJson, entry.bracketType);
   const normalizedTiebreakerJson = normalizeEntryTiebreakerJson(entry.tiebreakerJson);
   const scoreMap = normalizedTiebreakerJson?.championship.predictedScoresByTeamKey ?? {};
-  const teamLabelOverridesByKey = await getTeamLabelOverridesByKey();
+  const [teamLabelOverridesByKey, gameResults] = await Promise.all([
+    getTeamLabelOverridesByKey(),
+    prisma.game.findMany({
+      select: {
+        id: true,
+        status: true,
+        winnerTeamKey: true,
+        winnerTeam: true,
+      },
+    }),
+  ]);
+
+  const actualGameResultsByGameId = Object.fromEntries(
+    gameResults.map((gameResult) => [
+      gameResult.id,
+      {
+        status: gameResult.status,
+        winnerTeamKey: gameResult.winnerTeamKey,
+        winnerTeam: gameResult.winnerTeam,
+      },
+    ]),
+  );
 
   return (
     <PageShell
@@ -42,6 +63,7 @@ export default async function BracketViewPage({
         initialPicksByGameId={normalizedPicksJson.picksByGameId}
         initialScoresByTeamKey={scoreMap}
         teamLabelOverridesByKey={teamLabelOverridesByKey}
+        actualGameResultsByGameId={actualGameResultsByGameId}
       />
     </PageShell>
   );

@@ -14,10 +14,19 @@ import {
   type BracketType,
   type PicksByGameId,
 } from "@/lib/brackets/types";
+import { isFinalGameResultStatus } from "@/lib/results/status";
 
 type BracketEditorMode = "edit" | "view";
 
 type AvailabilityByGameId = Record<string, ReturnType<typeof getAvailableTeamsForGame>>;
+type GameResultByGameId = Record<
+  string,
+  {
+    status: string | null;
+    winnerTeamKey: string | null;
+    winnerTeam: string | null;
+  }
+>;
 
 function buildAvailability({
   bracketType,
@@ -78,6 +87,7 @@ export function BracketEditor({
   fieldErrors,
   initialScoresByTeamKey,
   teamLabelOverridesByKey,
+  actualGameResultsByGameId,
 }: {
   mode: BracketEditorMode;
   bracketType: BracketType;
@@ -85,6 +95,7 @@ export function BracketEditor({
   fieldErrors?: Record<string, string[]>;
   initialScoresByTeamKey?: Record<string, number>;
   teamLabelOverridesByKey?: Record<string, string>;
+  actualGameResultsByGameId?: GameResultByGameId;
 }) {
   const isEditMode = mode === "edit";
 
@@ -159,8 +170,13 @@ export function BracketEditor({
               const game = getCanonicalGame(gameId);
               const availableTeams = availableTeamsByGameId[gameId] ?? [];
               const selectedWinnerTeamKey = sanitizedPicks[gameId]?.winnerTeamKey;
-              const selectedWinnerLabel = selectedWinnerTeamKey
-                ? getTeamLabel(selectedWinnerTeamKey, teamLabelOverridesByKey)
+              const gameResult = actualGameResultsByGameId?.[gameId];
+              const isGameFinal = isFinalGameResultStatus(gameResult?.status);
+              const actualWinnerTeamKey = gameResult?.winnerTeamKey ?? null;
+              const actualWinnerLabel = isGameFinal
+                ? actualWinnerTeamKey
+                  ? getTeamLabel(actualWinnerTeamKey, teamLabelOverridesByKey)
+                  : gameResult?.winnerTeam?.trim() || null
                 : null;
               const pickFieldKey = `pick.${gameId}`;
               const pickError = fieldErrors?.[pickFieldKey]?.[0];
@@ -202,14 +218,18 @@ export function BracketEditor({
                           );
                         }
 
+                        const selectedClass = checked
+                          ? !isGameFinal || !actualWinnerTeamKey
+                            ? "border-slate-300 bg-slate-100 text-slate-900"
+                            : actualWinnerTeamKey === teamOption.key
+                              ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                              : "border-rose-300 bg-rose-50 text-rose-900"
+                          : "border-slate-200";
+
                         return (
                           <div
                             key={teamOption.key}
-                            className={`rounded-md border p-2 text-sm ${
-                              checked
-                                ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                                : "border-slate-200"
-                            }`}
+                            className={`rounded-md border p-2 text-sm ${selectedClass}`}
                           >
                             {teamOption.label}
                           </div>
@@ -218,9 +238,9 @@ export function BracketEditor({
                     </div>
                   )}
 
-                  {mode === "view" ? (
+                  {mode === "view" && actualWinnerLabel ? (
                     <p className="mt-2 text-xs text-slate-600">
-                      Winner: {selectedWinnerLabel ?? "Not selected"}
+                      Winner: {actualWinnerLabel}
                     </p>
                   ) : null}
 
