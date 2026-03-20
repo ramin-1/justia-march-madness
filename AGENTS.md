@@ -12,7 +12,7 @@ This repository powers a company March Madness bracket challenge with:
 
 ## First files to read for any non-trivial task
 
-1. `project_spec.md`
+1. `PROJECT_SPEC.md`
 2. `tasks/todo.md`
 3. `tasks/lessons.md`
 

@@ -32,7 +32,7 @@ npm run dev
 
 ## Important project files
 
-- `project_spec.md` - product scope, milestones, architecture, and sync plan
+- `PROJECT_SPEC.md` - product scope, milestones, architecture, and sync plan
 - `AGENTS.md` - Codex instructions for working in this repository
 - `tasks/todo.md` - active execution plan for non-trivial work
 - `tasks/lessons.md` - recurring mistakes and guardrails
@@ -43,16 +43,22 @@ npm run dev
 - Public: `/leaderboard`, `/bracket/[id]`
 - Admin scaffolds: `/login`, `/entries`, `/entries/new`, `/entries/[id]/edit`, `/admin/results`
 
-## Milestone 3 status
+## Milestone 4 status
 
 - Shared app shell and navigation are in place for all scaffold routes.
 - Admin routes are now protected by Auth.js credentials login.
 - Prisma is wired to PostgreSQL via `DATABASE_URL` in environment config.
-- Entries admin pages now support database-backed CRUD with Prisma:
+- Entries admin pages support database-backed CRUD with Prisma:
   - list and search (`/entries`)
   - create (`/entries/new`)
   - edit (`/entries/[id]/edit`)
   - delete with confirmation
+- Bracket editor/viewer now supports all bracket types:
+  - `MAIN`
+  - `SECOND_CHANCE_S16`
+  - `CHAMPIONSHIP`
+- Picks are persisted with canonical `winnerTeamKey` in `picksJson`.
+- Championship score guesses are persisted in `tiebreakerJson` via `predictedScoresByTeamKey`.
 
 ## Admin auth setup
 

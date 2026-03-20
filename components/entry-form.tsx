@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import {
   INITIAL_ENTRY_FORM_STATE,
   type EntryFormState,
 } from "@/app/entries/action-state";
+import { BracketEditor } from "@/components/bracket-editor";
+import {
+  BRACKET_TYPES,
+  BRACKET_TYPE_LABELS,
+  type BracketType,
+  type PicksByGameId,
+} from "@/lib/brackets/types";
 
 type EntryFormAction = (
   previousState: EntryFormState,
@@ -17,48 +24,117 @@ export function EntryForm({
   submitAction,
   entryId,
   defaultParticipantName = "",
+  defaultBracketType = "MAIN",
+  defaultPicksByGameId = {},
+  defaultScoresByTeamKey = {},
 }: {
   mode: "create" | "edit";
   submitAction: EntryFormAction;
   entryId?: string;
   defaultParticipantName?: string;
+  defaultBracketType?: BracketType;
+  defaultPicksByGameId?: PicksByGameId;
+  defaultScoresByTeamKey?: Record<string, number>;
 }) {
   const [state, formAction, isPending] = useActionState(
     submitAction,
     INITIAL_ENTRY_FORM_STATE,
   );
 
+  const [selectedBracketType, setSelectedBracketType] = useState<BracketType>(
+    defaultBracketType,
+  );
+
   const submitLabel = mode === "create" ? "Create Entry" : "Save Changes";
   const participantNameError = state.fieldErrors?.participantName?.[0];
+  const bracketTypeError = state.fieldErrors?.bracketType?.[0];
+  const isCreateMode = mode === "create";
+
+  const editorInitialPicks = useMemo(
+    () => (isCreateMode ? {} : defaultPicksByGameId),
+    [defaultPicksByGameId, isCreateMode],
+  );
+
+  const editorInitialScores = useMemo(
+    () => (isCreateMode ? {} : defaultScoresByTeamKey),
+    [defaultScoresByTeamKey, isCreateMode],
+  );
 
   return (
-    <form action={formAction} className="space-y-5 rounded-xl border bg-white p-6 shadow-sm">
+    <form action={formAction} className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
       {entryId ? <input type="hidden" name="id" value={entryId} /> : null}
 
-      <div>
-        <label htmlFor="participant-name" className="mb-1 block text-sm font-medium">
-          Participant name
-        </label>
-        <input
-          id="participant-name"
-          name="participantName"
-          className="w-full rounded-md border border-slate-300 px-3 py-2"
-          defaultValue={defaultParticipantName}
-          required
-          aria-invalid={participantNameError ? "true" : "false"}
-          aria-describedby={participantNameError ? "participant-name-error" : undefined}
-        />
-        {participantNameError ? (
-          <p id="participant-name-error" className="mt-1 text-sm text-red-700">
-            {participantNameError}
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <label htmlFor="participant-name" className="mb-1 block text-sm font-medium">
+            Participant name
+          </label>
+          <input
+            id="participant-name"
+            name="participantName"
+            className="w-full rounded-md border border-slate-300 px-3 py-2"
+            defaultValue={defaultParticipantName}
+            required
+            aria-invalid={participantNameError ? "true" : "false"}
+            aria-describedby={participantNameError ? "participant-name-error" : undefined}
+          />
+          {participantNameError ? (
+            <p id="participant-name-error" className="mt-1 text-sm text-red-700">
+              {participantNameError}
+            </p>
+          ) : null}
+        </div>
+
+        <div>
+          <label htmlFor="bracket-type" className="mb-1 block text-sm font-medium">
+            Bracket type
+          </label>
+
+          {isCreateMode ? (
+            <select
+              id="bracket-type"
+              name="bracketType"
+              className="w-full rounded-md border border-slate-300 px-3 py-2"
+              value={selectedBracketType}
+              onChange={(event) => setSelectedBracketType(event.target.value as BracketType)}
+              aria-invalid={bracketTypeError ? "true" : "false"}
+              aria-describedby={bracketTypeError ? "bracket-type-error" : undefined}
+            >
+              {BRACKET_TYPES.map((bracketType) => (
+                <option key={bracketType} value={bracketType}>
+                  {BRACKET_TYPE_LABELS[bracketType]}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <>
+              <input type="hidden" name="bracketType" value={selectedBracketType} />
+              <div className="rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
+                {BRACKET_TYPE_LABELS[selectedBracketType]}
+              </div>
+            </>
+          )}
+
+          {bracketTypeError ? (
+            <p id="bracket-type-error" className="mt-1 text-sm text-red-700">
+              {bracketTypeError}
+            </p>
+          ) : null}
+
+          <p className="mt-1 text-xs text-slate-500">
+            Entry name is generated automatically from participant name and bracket type.
           </p>
-        ) : null}
-        <p className="mt-1 text-xs text-slate-500">
-          Entry name is generated automatically from participant name (for example:
-          {" "}
-          <span className="font-medium">&quot;Colin Murphy&apos;s Bracket&quot;</span>).
-        </p>
+        </div>
       </div>
+
+      <BracketEditor
+        key={`${selectedBracketType}-${mode}`}
+        mode="edit"
+        bracketType={selectedBracketType}
+        initialPicksByGameId={editorInitialPicks}
+        initialScoresByTeamKey={editorInitialScores}
+        fieldErrors={state.fieldErrors}
+      />
 
       {state.message ? (
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">

@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 March Madness Company Challenge
               </Link>
               <p className="text-xs text-slate-500">
-                Milestone 3: public pages + protected admin entry management
+                Milestone 4: multi-type bracket editor and viewer
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-3">

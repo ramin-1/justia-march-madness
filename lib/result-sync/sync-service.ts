@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeEntryPicksJson } from "@/lib/brackets/serialization";
 import { calculateScore, ROUND_POINTS, type RoundKey } from "@/lib/scoring";
 import { fetchNcaaScoresHtml, parseCompletedGames } from "./ncaa";
 import { isLikelyMatch } from "./matching";
@@ -65,17 +66,24 @@ export async function syncNcaaResults() {
     const entries = await prisma.entry.findMany();
 
     await Promise.all(
-      entries.map((entry) =>
-        prisma.entry.update({
+      entries.map((entry) => {
+        const normalizedPicks = normalizeEntryPicksJson(
+          entry.picksJson,
+          entry.bracketType,
+        ).picksByGameId;
+        const legacyPickMap: Record<string, string | undefined> = {};
+
+        for (const [gameId, pick] of Object.entries(normalizedPicks)) {
+          legacyPickMap[gameId] = pick.winnerTeamKey;
+        }
+
+        return prisma.entry.update({
           where: { id: entry.id },
           data: {
-            totalScore: calculateScore(
-              (entry.picksJson as Record<string, string | null | undefined>) ?? {},
-              scorableGames,
-            ),
+            totalScore: calculateScore(legacyPickMap, scorableGames),
           },
-        }),
-      ),
+        });
+      }),
     );
 
     await prisma.syncRun.update({

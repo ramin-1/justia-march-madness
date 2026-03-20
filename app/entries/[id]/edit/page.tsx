@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { updateEntryAction } from "@/app/entries/actions";
-import { BracketPlaceholder } from "@/components/bracket-placeholder";
 import { EntryForm } from "@/components/entry-form";
 import { PageShell } from "@/components/page-shell";
 import { buildEntryName } from "@/lib/entries/validation";
+import { normalizeEntryPicksJson, normalizeEntryTiebreakerJson } from "@/lib/brackets/serialization";
 import { prisma } from "@/lib/prisma";
 
 export default async function EditEntryPage({
@@ -17,6 +17,9 @@ export default async function EditEntryPage({
     select: {
       id: true,
       participantName: true,
+      bracketType: true,
+      picksJson: true,
+      tiebreakerJson: true,
     },
   });
 
@@ -24,23 +27,26 @@ export default async function EditEntryPage({
     notFound();
   }
 
-  const generatedName = buildEntryName(entry.participantName);
+  const generatedName = buildEntryName(entry.participantName, entry.bracketType);
+  const normalizedPicksJson = normalizeEntryPicksJson(entry.picksJson, entry.bracketType);
+  const normalizedTiebreakerJson = normalizeEntryTiebreakerJson(entry.tiebreakerJson);
+  const defaultScoresByTeamKey =
+    normalizedTiebreakerJson?.championship.predictedScoresByTeamKey ?? {};
 
   return (
     <PageShell
       title={`Edit Entry: ${generatedName}`}
-      description="Update participant name. Entry name is generated automatically."
+      description="Update participant details and saved bracket picks."
     >
       <EntryForm
         mode="edit"
         submitAction={updateEntryAction}
         entryId={entry.id}
         defaultParticipantName={entry.participantName}
+        defaultBracketType={entry.bracketType}
+        defaultPicksByGameId={normalizedPicksJson.picksByGameId}
+        defaultScoresByTeamKey={defaultScoresByTeamKey}
       />
-
-      <div className="mt-8">
-        <BracketPlaceholder mode="edit" entryName={generatedName} />
-      </div>
     </PageShell>
   );
 }

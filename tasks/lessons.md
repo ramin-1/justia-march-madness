@@ -28,3 +28,10 @@ YYYY-MM-DD
 **Pattern**: Added scope that belongs to a later milestone instead of honoring milestone boundaries strictly.
 **Rule**: For milestone-scoped scaffold tasks, avoid temporary auth or behavior hacks unless they are explicitly requested or required for build health.
 **Applied**: Removed `middleware.ts` gating and kept admin routes as clearly labeled placeholders until Milestone 2.
+
+## 2026-03-19 - Bracket Topology Accuracy
+
+**Mistake**: Assumed all four `MAIN` play-in games were 16-seed qualifiers when expanding the full topology.
+**Pattern**: Applied a uniform region template without encoding seed-slot differences for play-in integration.
+**Rule**: Treat play-in seed qualifier type as explicit metadata (`16` vs `11`) and map dependencies to the correct round-one slot (`R1_G1` for 16-seed qualifiers, `R1_G5` for 11-seed qualifiers).
+**Applied**: Updated `lib/brackets/registry.ts` with seed-aware play-in metadata and region topology wiring so East/South are 16-seed qualifiers and West/Midwest are 11-seed qualifiers.

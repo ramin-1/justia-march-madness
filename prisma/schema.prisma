@@ -7,12 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum BracketType {
+  MAIN
+  SECOND_CHANCE_S16
+  CHAMPIONSHIP
+}
+
 model Entry {
   id               String   @id @default(cuid())
   name             String
   participantName  String
+  bracketType      BracketType @default(MAIN)
   picksJson        Json
+  tiebreakerJson   Json?
   totalScore       Int      @default(0)
+  correctPicks     Int      @default(0)
   maxPossibleScore Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

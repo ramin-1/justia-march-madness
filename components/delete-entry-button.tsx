@@ -7,10 +7,12 @@ export function DeleteEntryButton({
   entryId,
   entryName,
   query,
+  bracketType,
 }: {
   entryId: string;
   entryName: string;
   query?: string;
+  bracketType?: string;
 }) {
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     const isConfirmed = window.confirm(
@@ -26,6 +28,7 @@ export function DeleteEntryButton({
     <form action={deleteEntryAction} onSubmit={onSubmit}>
       <input type="hidden" name="id" value={entryId} />
       {query ? <input type="hidden" name="q" value={query} /> : null}
+      {bracketType ? <input type="hidden" name="type" value={bracketType} /> : null}
       <button type="submit" className="text-red-700 hover:text-red-800">
         Delete
       </button>

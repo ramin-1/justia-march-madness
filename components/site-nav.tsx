@@ -5,7 +5,6 @@ const navSections = [
     label: "Public",
     links: [
       { href: "/leaderboard", label: "Leaderboard" },
-      { href: "/bracket/demo-1", label: "Bracket Demo" },
     ],
   },
   {
@@ -14,7 +13,6 @@ const navSections = [
       { href: "/login", label: "Admin Login" },
       { href: "/entries", label: "Admin Entries" },
       { href: "/entries/new", label: "Admin New Entry" },
-      { href: "/entries/demo-1/edit", label: "Admin Edit Entry" },
       { href: "/admin/results", label: "Admin Results" },
     ],
   },

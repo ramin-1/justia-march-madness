@@ -1,7 +1,9 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { DeleteEntryButton } from "@/components/delete-entry-button";
 import { PageShell } from "@/components/page-shell";
-import { entrySearchSchema } from "@/lib/entries/validation";
+import { BRACKET_TYPES, BRACKET_TYPE_LABELS } from "@/lib/brackets/types";
+import { entrySearchSchema, entryTypeFilterSchema } from "@/lib/entries/validation";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +33,7 @@ function getSingleSearchParam(
 type EntriesPageProps = {
   searchParams: Promise<{
     q?: string | string[];
+    type?: string | string[];
     notice?: string | string[];
     error?: string | string[];
   }>;
@@ -39,8 +42,11 @@ type EntriesPageProps = {
 export default async function EntriesPage({ searchParams }: EntriesPageProps) {
   const params = await searchParams;
   const rawQuery = getSingleSearchParam(params.q);
+  const rawBracketType = getSingleSearchParam(params.type);
   const parsedQuery = entrySearchSchema.safeParse(rawQuery);
+  const parsedBracketType = entryTypeFilterSchema.safeParse(rawBracketType);
   const query = parsedQuery.success ? parsedQuery.data : undefined;
+  const bracketType = parsedBracketType.success ? parsedBracketType.data : undefined;
   const noticeKey = getSingleSearchParam(params.notice);
   const errorKey = getSingleSearchParam(params.error);
   const noticeMessage =
@@ -52,20 +58,35 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
       ? errorMessages[errorKey as keyof typeof errorMessages]
       : null;
 
-  const entries = await prisma.entry.findMany({
-    where: query
+  const textSearchFilters: Prisma.EntryWhereInput[] | undefined = query
+    ? [
+        { name: { contains: query, mode: "insensitive" } },
+        { participantName: { contains: query, mode: "insensitive" } },
+      ]
+    : undefined;
+
+  const whereClause =
+    textSearchFilters && bracketType
       ? {
-          OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { participantName: { contains: query, mode: "insensitive" } },
-          ],
+          bracketType,
+          OR: textSearchFilters,
         }
-      : undefined,
+      : textSearchFilters
+        ? {
+            OR: textSearchFilters,
+          }
+        : bracketType
+          ? { bracketType }
+          : undefined;
+
+  const entries = await prisma.entry.findMany({
+    where: whereClause,
     orderBy: [{ updatedAt: "desc" }],
     select: {
       id: true,
       name: true,
       participantName: true,
+      bracketType: true,
       totalScore: true,
       updatedAt: true,
     },
@@ -77,17 +98,47 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
       description="Manage bracket entries. Search, add, edit, and delete entries from this admin page."
     >
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <form className="w-full max-w-sm" method="GET">
-          <label htmlFor="entry-search" className="mb-1 block text-sm font-medium text-slate-700">
-            Search
-          </label>
-          <input
-            id="entry-search"
-            name="q"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            placeholder="Entry or participant name"
-            defaultValue={query ?? ""}
-          />
+        <form className="grid w-full max-w-2xl gap-3 md:grid-cols-2" method="GET">
+          <div>
+            <label htmlFor="entry-search" className="mb-1 block text-sm font-medium text-slate-700">
+              Search
+            </label>
+            <input
+              id="entry-search"
+              name="q"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              placeholder="Entry or participant name"
+              defaultValue={query ?? ""}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="entry-type" className="mb-1 block text-sm font-medium text-slate-700">
+              Bracket type
+            </label>
+            <select
+              id="entry-type"
+              name="type"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              defaultValue={bracketType ?? ""}
+            >
+              <option value="">All bracket types</option>
+              {BRACKET_TYPES.map((typeOption) => (
+                <option key={typeOption} value={typeOption}>
+                  {BRACKET_TYPE_LABELS[typeOption]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <button
+              type="submit"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Apply Filters
+            </button>
+          </div>
         </form>
 
         <Link
@@ -116,6 +167,7 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
             <tr>
               <th className="px-4 py-3 font-semibold">Entry</th>
               <th className="px-4 py-3 font-semibold">Participant</th>
+              <th className="px-4 py-3 font-semibold">Bracket Type</th>
               <th className="px-4 py-3 font-semibold">Score</th>
               <th className="px-4 py-3 font-semibold">Updated</th>
               <th className="px-4 py-3 font-semibold">Actions</th>
@@ -124,7 +176,7 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
           <tbody className="divide-y divide-slate-100">
             {entries.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-600">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
                   {query
                     ? `No entries found for "${query}".`
                     : "No entries yet. Add your first bracket entry."}
@@ -139,6 +191,7 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
                     </Link>
                   </td>
                   <td className="px-4 py-3">{entry.participantName}</td>
+                  <td className="px-4 py-3">{BRACKET_TYPE_LABELS[entry.bracketType]}</td>
                   <td className="px-4 py-3">{entry.totalScore}</td>
                   <td className="px-4 py-3">
                     {new Intl.DateTimeFormat("en-US", {
@@ -153,6 +206,7 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
                         entryId={entry.id}
                         entryName={entry.name}
                         query={query}
+                        bracketType={bracketType}
                       />
                     </div>
                   </td>
