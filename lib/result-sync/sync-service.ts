@@ -1,12 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { normalizeEntryPicksJson } from "@/lib/brackets/serialization";
-import { calculateScore, ROUND_POINTS, type RoundKey } from "@/lib/scoring";
+import { recalculateEntryStandings } from "@/lib/standings";
 import { fetchNcaaScoresHtml, parseCompletedGames } from "./ncaa";
 import { isLikelyMatch } from "./matching";
-
-function isRoundKey(round: string): round is RoundKey {
-  return round in ROUND_POINTS;
-}
 
 export async function syncNcaaResults() {
   const startedAt = new Date();
@@ -40,10 +35,18 @@ export async function syncNcaaResults() {
         continue;
       }
 
+      const winnerTeamKey =
+        scrapedGame.winnerTeam === match.homeTeam
+          ? match.homeTeamKey
+          : scrapedGame.winnerTeam === match.awayTeam
+            ? match.awayTeamKey
+            : null;
+
       await prisma.game.update({
         where: { id: match.id },
         data: {
           winnerTeam: scrapedGame.winnerTeam,
+          winnerTeamKey,
           status: "resolved",
           syncSource: "ncaa",
           lastSyncedAt: new Date(),
@@ -53,38 +56,7 @@ export async function syncNcaaResults() {
       updatedGames += 1;
     }
 
-    const resolvedGames = await prisma.game.findMany({
-      select: { id: true, round: true, winnerTeam: true },
-    });
-    const scorableGames = resolvedGames.filter(
-      (
-        game,
-      ): game is { id: string; round: RoundKey; winnerTeam: string | null } =>
-        isRoundKey(game.round),
-    );
-
-    const entries = await prisma.entry.findMany();
-
-    await Promise.all(
-      entries.map((entry) => {
-        const normalizedPicks = normalizeEntryPicksJson(
-          entry.picksJson,
-          entry.bracketType,
-        ).picksByGameId;
-        const legacyPickMap: Record<string, string | undefined> = {};
-
-        for (const [gameId, pick] of Object.entries(normalizedPicks)) {
-          legacyPickMap[gameId] = pick.winnerTeamKey;
-        }
-
-        return prisma.entry.update({
-          where: { id: entry.id },
-          data: {
-            totalScore: calculateScore(legacyPickMap, scorableGames),
-          },
-        });
-      }),
-    );
+    await recalculateEntryStandings();
 
     await prisma.syncRun.update({
       where: { id: syncRun.id },

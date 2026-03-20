@@ -13,6 +13,7 @@ import {
   getFormStringValue,
   parseEntryFormData,
 } from "@/lib/entries/validation";
+import { computeEntryScoreFields } from "@/lib/standings";
 
 function buildEntriesPath(options?: {
   query?: string;
@@ -73,6 +74,11 @@ export async function createEntryAction(
   }
 
   try {
+    const scoreFields = await computeEntryScoreFields({
+      bracketType: parsedFormData.data.bracketType,
+      picksByGameId: parsedFormData.data.picksJson.picksByGameId,
+    });
+
     const tiebreakerJsonValue =
       parsedFormData.data.tiebreakerJson === null
         ? Prisma.DbNull
@@ -88,6 +94,7 @@ export async function createEntryAction(
         ),
         picksJson: parsedFormData.data.picksJson,
         tiebreakerJson: tiebreakerJsonValue,
+        ...scoreFields,
       },
     });
   } catch {
@@ -140,6 +147,11 @@ export async function updateEntryAction(
   }
 
   try {
+    const scoreFields = await computeEntryScoreFields({
+      bracketType: parsedFormData.data.bracketType,
+      picksByGameId: parsedFormData.data.picksJson.picksByGameId,
+    });
+
     const tiebreakerJsonValue =
       parsedFormData.data.tiebreakerJson === null
         ? Prisma.DbNull
@@ -156,6 +168,7 @@ export async function updateEntryAction(
         ),
         picksJson: parsedFormData.data.picksJson,
         tiebreakerJson: tiebreakerJsonValue,
+        ...scoreFields,
       },
     });
   } catch (error) {

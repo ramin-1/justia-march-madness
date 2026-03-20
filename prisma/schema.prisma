@@ -33,8 +33,13 @@ model Game {
   region       String?
   slotLabel    String
   homeTeam     String?
+  homeTeamKey  String?
+  homeScore    Int?
   awayTeam     String?
+  awayTeamKey  String?
+  awayScore    Int?
   winnerTeam   String?
+  winnerTeamKey String?
   status       String   @default("pending")
   scheduledDate DateTime?
   syncSource   String?

@@ -148,3 +148,71 @@ Follow-up complete. `MAIN` now uses a full internally consistent tournament topo
 
 ## Review
 Follow-up complete. `MAIN` play-in labeling now reflects two 16-seed qualifiers (East/South) plus two 11-seed qualifiers (West/Midwest), and dependency mapping routes those play-in winners into the correct round-one slots without changing `SECOND_CHANCE_S16` or `CHAMPIONSHIP` architecture.
+
+---
+
+# Task: Milestone 5 - Scoring, Ranking, and Leaderboard
+
+## Plan
+- [x] Re-read required project/workflow docs and audit current scoring, leaderboard, and result data contracts.
+- [x] Add minimal schema/model support for canonical result keys and score fields needed for championship ranking.
+- [x] Build a centralized type-aware scoring/ranking layer with separate `MAIN`, `SECOND_CHANCE_S16`, and `CHAMPIONSHIP` logic.
+- [x] Add a reusable standings recalculation path and wire it into existing result-sync and entry mutation flows.
+- [x] Replace `/leaderboard` scaffold with public type tabs/views and type-specific leaderboard tables.
+- [x] Verify with `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update task review notes and document assumptions/incomplete items.
+
+## Progress Notes
+- 2026-03-19 04:42 PDT - Started Milestone 5 pass after re-reading `AGENTS.md`, `PROJECT_SPEC.md`, `tasks/*`, `.agents/skills/workflow-orchestration/SKILL.md`, and `docs/multi-bracket-alignment.md`.
+- 2026-03-19 04:45 PDT - Audited existing code and found `/leaderboard` still scaffold-only and `lib/scoring.ts` still single-points-only logic without type-aware championship ranking.
+- 2026-03-19 04:46 PDT - Identified minimal schema gap for championship ranking: current `Game` model lacks canonical team-key score context needed for robust winner-score/total-score comparisons.
+- 2026-03-19 18:31 PDT - Added Milestone 5 schema support on `Game` for canonical team-key and score data (`homeTeamKey`, `awayTeamKey`, `winnerTeamKey`, `homeScore`, `awayScore`) plus migration and seed updates.
+- 2026-03-19 18:33 PDT - Replaced scoring layer with separate main scorer, second-chance scorer, and championship ranker; added canonical result normalization and unresolved-game defensive behavior.
+- 2026-03-19 18:35 PDT - Added reusable standings recalculation module and wired score persistence into entry create/update plus NCAA sync recalculation path.
+- 2026-03-19 18:37 PDT - Replaced `/leaderboard` placeholder with public bracket-type tab views and type-specific tables/columns, including championship provisional-state messaging.
+- 2026-03-19 18:40 PDT - Verification complete: `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Milestone 5 implementation complete within scope: type-aware scoring/ranking for all three bracket products, reusable standings recalculation, and a public tabbed leaderboard with bracket-type-specific columns and ranking behavior. No Milestone 6+ admin results UI or NCAA parser enhancements were introduced.
+
+---
+
+# Task: Prisma Migration Chain Repair (Milestone 5)
+
+## Plan
+- [x] Inspect `prisma/schema.prisma`, migration ordering, and `prisma/seed.ts` usage.
+- [x] Fix migration ordering so `Game` is created before any migration that alters it.
+- [x] Ensure migration history aligns with seed usage of `homeTeamKey` and related fields.
+- [x] Run verification possible in this environment and capture any local-environment blockers.
+- [x] Document exact local reset/verification commands for a clean-from-scratch run.
+
+## Progress Notes
+- 2026-03-19 18:47 PDT - Diagnosed migration ordering root cause: `20260319050000_milestone5_scoring` ran before `20260319071823_init`, causing `ALTER TABLE "Game"` to fail in shadow DB (`P3006/P1014`).
+- 2026-03-19 18:47 PDT - Renamed migration directory to `20260319100000_milestone5_scoring` so apply order is now `init -> milestone4 -> milestone5`.
+- 2026-03-19 18:48 PDT - Performed static chain sanity check confirming `CREATE TABLE "Game"` appears in the earlier migration and `ALTER TABLE "Game"` only appears in the later migration.
+- 2026-03-19 18:49 PDT - Could not execute runtime Prisma migrate/seed checks in this sandbox because PostgreSQL server at `localhost:5432` is unreachable (`P1001`); prepared exact local commands for verification/reset.
+
+## Review
+Migration chain ordering is now internally consistent from an empty database. Local developer should run a database reset + migrate + seed once to clear old failed migration state from `_prisma_migrations` and align runtime DB columns with the repaired migration history.
+
+---
+
+# Task: Prisma Config Migration (package.json -> prisma.config.ts)
+
+## Plan
+- [x] Re-read required repo workflow/spec files and verify current Prisma setup.
+- [x] Add root `prisma.config.ts` using modern Prisma config format.
+- [x] Configure schema path, migrations path, and seed command in new config.
+- [x] Remove deprecated `package.json#prisma` block.
+- [x] Verify Prisma CLI commands still work for this scoped change.
+- [x] Update task review notes.
+
+## Progress Notes
+- 2026-03-19 18:59 PDT - Confirmed installed Prisma exposes config API via `prisma/config` (`defineConfig`, `env`) and supports `migrations.path` + `migrations.seed` in config types.
+- 2026-03-19 19:00 PDT - Added root `prisma.config.ts` and removed deprecated `package.json#prisma` block.
+- 2026-03-19 19:01 PDT - Added `dotenv/config` loading in `prisma.config.ts` so Prisma config can resolve `DATABASE_URL` before schema-engine initialization.
+- 2026-03-19 19:02 PDT - Verification: `npm run db:generate` now loads `prisma.config.ts` successfully and no longer emits the deprecated `package.json#prisma` warning; `npm run db:seed` runs successfully in this environment.
+- 2026-03-19 19:02 PDT - `npm run db:migrate` still reports a schema-engine error in this environment, which appears to be existing local DB/migration-state related rather than config-deprecation related.
+
+## Review
+Config cleanup complete. Prisma now uses `prisma.config.ts` as the primary config source with equivalent schema/migration/seed settings, and the deprecated `package.json#prisma` warning is removed.
