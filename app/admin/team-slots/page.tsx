@@ -71,67 +71,77 @@ export default async function AdminTeamSlotsPage({ searchParams }: TeamSlotsPage
         </p>
       ) : null}
 
-      <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Slot Key</th>
-              <th className="px-4 py-3 font-semibold">Default Slot Label</th>
-              <th className="px-4 py-3 font-semibold">Current Display Label</th>
-              <th className="px-4 py-3 font-semibold">Source</th>
-              <th className="px-4 py-3 font-semibold">Manual Assignment</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {slots.map((slot) => {
-              const manualAssignment = manualAssignmentByKey.get(slot.key) ?? "";
-              const displayLabel = getTeamLabel(slot.key, teamLabelOverridesByKey);
-              const source = manualAssignment
-                ? "Manual override"
-                : displayLabel !== slot.label
-                  ? "Synced/derived"
-                  : "Placeholder";
-
-              return (
-                <tr key={slot.key}>
-                  <td className="px-4 py-3 font-medium text-slate-900">{slot.key}</td>
-                  <td className="px-4 py-3 text-slate-700">{slot.label}</td>
-                  <td className="px-4 py-3 text-slate-900">{displayLabel}</td>
-                  <td className="px-4 py-3 text-slate-700">{source}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <form action={saveTeamSlotAssignmentAction} className="flex flex-wrap items-center gap-2">
-                        <input type="hidden" name="teamKey" value={slot.key} />
-                        <input
-                          name="teamName"
-                          defaultValue={manualAssignment}
-                          placeholder="Set manual team name"
-                          className="w-56 rounded-md border border-slate-300 px-3 py-2 text-sm"
-                        />
-                        <button
-                          type="submit"
-                          className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white"
-                        >
-                          Save
-                        </button>
-                      </form>
-
-                      <form action={clearTeamSlotAssignmentAction}>
-                        <input type="hidden" name="teamKey" value={slot.key} />
-                        <button
-                          type="submit"
-                          className="rounded-md border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700"
-                        >
-                          Clear
-                        </button>
-                      </form>
-                    </div>
+      <div className="rounded-xl border bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-[980px] divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Slot Key</th>
+                <th className="px-4 py-3 font-semibold">Default Slot Label</th>
+                <th className="px-4 py-3 font-semibold">Current Display Label</th>
+                <th className="px-4 py-3 font-semibold">Source</th>
+                <th className="px-4 py-3 font-semibold">Manual Assignment</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {slots.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-600">
+                    No canonical team slots are available yet.
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ) : (
+                slots.map((slot) => {
+                  const manualAssignment = manualAssignmentByKey.get(slot.key) ?? "";
+                  const displayLabel = getTeamLabel(slot.key, teamLabelOverridesByKey);
+                  const source = manualAssignment
+                    ? "Manual override"
+                    : displayLabel !== slot.label
+                      ? "Synced/derived"
+                      : "Placeholder";
+
+                  return (
+                    <tr key={slot.key}>
+                      <td className="px-4 py-3 font-medium text-slate-900">{slot.key}</td>
+                      <td className="px-4 py-3 text-slate-700">{slot.label}</td>
+                      <td className="px-4 py-3 text-slate-900">{displayLabel}</td>
+                      <td className="px-4 py-3 text-slate-700">{source}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <form action={saveTeamSlotAssignmentAction} className="flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="teamKey" value={slot.key} />
+                            <input
+                              name="teamName"
+                              defaultValue={manualAssignment}
+                              placeholder="Set manual team name"
+                              className="w-56 rounded-md border border-slate-300 px-3 py-2 text-sm"
+                            />
+                            <button
+                              type="submit"
+                              className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white"
+                            >
+                              Save
+                            </button>
+                          </form>
+
+                          <form action={clearTeamSlotAssignmentAction}>
+                            <input type="hidden" name="teamKey" value={slot.key} />
+                            <button
+                              type="submit"
+                              className="rounded-md border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700"
+                            >
+                              Clear
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </PageShell>
   );

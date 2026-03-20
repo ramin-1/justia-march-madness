@@ -1,90 +1,179 @@
 # justia-march-madness
 
-A scaffolded Next.js + TypeScript repository for building a company-wide March Madness bracket challenge.
+Company March Madness bracket challenge app with:
 
-## Product goals
+- public leaderboard
+- public read-only bracket pages
+- protected admin entry management
+- manual results management + NCAA sync
+- multi-bracket support: `MAIN`, `SECOND_CHANCE_S16`, `CHAMPIONSHIP`
 
-- Public leaderboard with clickable entry names
-- Public read-only bracket pages for each entry
-- Password-protected admin entry management
-- Daily NCAA result syncing with manual admin override
-- Bracket UI that follows the uploaded 2026 NCAA bracket format
+## Current scope (Milestones 1–8)
 
-## Tech stack
+- Route shell + shared nav
+- Admin auth (Auth.js credentials)
+- Prisma/PostgreSQL persistence
+- Entry CRUD with bracket-type-aware naming and duplicate prevention per participant/type
+- Bracket editor + public bracket viewer for all three bracket products
+- Scoring + leaderboard tabs/views for all bracket products
+- Admin results management (final-only completion model)
+- NCAA sync into canonical `Game` rows
+- Manual team-slot override management
+- UX polish: responsive cleanup, print-friendly bracket view, loading/error/not-found states
 
-- Next.js App Router
-- TypeScript
+## Stack
+
+- Next.js 16 App Router + TypeScript
 - Tailwind CSS
 - Prisma + PostgreSQL
-- Auth.js credentials login
-- Zod validation
+- Auth.js credentials
+- Zod
 
-## Quick start
+## Setup
+
+1. Install dependencies:
 
 ```bash
 npm install
+```
+
+2. Copy environment template and fill values:
+
+```bash
 cp .env.example .env
+```
+
+3. Generate Prisma client and run migrations:
+
+```bash
 npm run db:generate
 npm run db:migrate
+```
+
+4. Seed canonical game + sample data (optional but recommended for local testing):
+
+```bash
 npm run db:seed
+```
+
+5. Start dev server:
+
+```bash
 npm run dev
 ```
 
-## Important project files
+## Environment variables
 
-- `PROJECT_SPEC.md` - product scope, milestones, architecture, and sync plan
-- `AGENTS.md` - Codex instructions for working in this repository
-- `tasks/todo.md` - active execution plan for non-trivial work
-- `tasks/lessons.md` - recurring mistakes and guardrails
-- `.agents/skills/workflow-orchestration/` - vendored workflow skill reference used as the planning pattern
+See `.env.example` for the full list. Required for normal local usage:
 
-## Core routes
+- `DATABASE_URL`
+- `AUTH_SECRET`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD_HASH`
 
-- Public: `/leaderboard`, `/bracket/[id]`
-- Admin scaffolds: `/login`, `/entries`, `/entries/new`, `/entries/[id]/edit`, `/admin/results`
+Recommended:
 
-## Milestone 4 status
+- `AUTH_TRUST_HOST=true` (especially in hosted environments)
 
-- Shared app shell and navigation are in place for all scaffold routes.
-- Admin routes are now protected by Auth.js credentials login.
-- Prisma is wired to PostgreSQL via `DATABASE_URL` in environment config.
-- Entries admin pages support database-backed CRUD with Prisma:
-  - list and search (`/entries`)
-  - create (`/entries/new`)
-  - edit (`/entries/[id]/edit`)
-  - delete with confirmation
-- Bracket editor/viewer now supports all bracket types:
-  - `MAIN`
-  - `SECOND_CHANCE_S16`
-  - `CHAMPIONSHIP`
-- Picks are persisted with canonical `winnerTeamKey` in `picksJson`.
-- Championship score guesses are persisted in `tiebreakerJson` via `predictedScoresByTeamKey`.
+NCAA sync optional overrides:
 
-## Admin auth setup
+- `NCAA_SCORES_URL`
+- `NCAA_SCORES_BASE_URL`
+- `NCAA_SCORES_DATE`
+- `NCAA_SCORES_TIMEZONE`
+- `NCAA_SCORES_FETCH_TIMEOUT_MS` (default `15000`)
 
-- Set `AUTH_SECRET` in `.env`.
-- Set `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` in `.env`.
-- `ADMIN_PASSWORD_HASH` should be a bcrypt hash stored in `.env`.
-- Next.js expands `$` values in `.env`, so escape literal dollar signs in bcrypt hashes as `\$`.
-- Example:
+### `ADMIN_PASSWORD_HASH` format
+
+`ADMIN_PASSWORD_HASH` must be a bcrypt hash in `.env`.
+
+Next.js expands `$` in `.env` values, so escape literal dollar signs as `\$`.
+
+Example:
 
 ```env
 ADMIN_PASSWORD_HASH="\$2b\$10\$..."
 ```
 
-- After starting the app, use `/login` and sign in to access `/entries*` and `/admin/results`.
+## Commands
 
-## Notes on result syncing
+- `npm run dev` - local dev server
+- `npm run build` - production build
+- `npm run start` - run production build
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run db:generate`
+- `npm run db:migrate`
+- `npm run db:seed`
+- `npm run sync:results` - manual NCAA sync CLI run
 
-Automated result syncing should be treated as an importer into the local `Game` table, not the source of truth itself. The admin results page remains the fallback whenever parsing or matching fails.
+## Core routes
 
-- Source defaults to today’s NCAA scores page using:
-  - `https://www.ncaa.com/march-madness-live/scores/YYYY/MM/DD`
-- Optional overrides for local testing:
-  - `NCAA_SCORES_URL` (full URL override)
-  - `NCAA_SCORES_BASE_URL` (base URL override)
-  - `NCAA_SCORES_DATE` (`YYYY-MM-DD` run date)
-  - `NCAA_SCORES_TIMEZONE` (defaults to `America/New_York`)
-- Run manually:
-  - `npm run sync:results`
-- Admin can also trigger sync from `/admin/results`.
+Public:
+
+- `/leaderboard`
+- `/bracket/[id]`
+
+Protected admin:
+
+- `/login`
+- `/entries`
+- `/entries/new`
+- `/entries/[id]/edit`
+- `/admin/results`
+- `/admin/team-slots`
+
+## Operational workflows
+
+### Admin entry management
+
+1. Log in at `/login`
+2. Use `/entries` for list/search/delete
+3. Use `/entries/new` to create entries
+4. Use `/entries/[id]/edit` to update existing entries
+
+Duplicate protection:
+
+- A participant can only have one entry per bracket type.
+- Valid combination remains one each of `MAIN`, `SECOND_CHANCE_S16`, and `CHAMPIONSHIP`.
+
+### Results management
+
+- `/admin/results` is the canonical admin workflow for manual winner/status/score entry.
+- Completion status semantics are final-only:
+  - unfinished: `pending`, `in_progress`
+  - completed/scored: `final`
+
+### NCAA sync
+
+- Sync writes into canonical `Game` rows (importer model), then recalculates standings.
+- Manual admin results remain the fallback/override path.
+- Trigger via:
+  - CLI: `npm run sync:results`
+  - UI: `/admin/results` -> `Sync NCAA Results`
+
+## Print-friendly bracket views
+
+Open `/bracket/[id]` and use `Print Bracket` (or browser print). Print styling hides app chrome and keeps matchup/pick/result cards readable.
+
+## Deployment notes
+
+Before launching:
+
+1. Set production env vars (`DATABASE_URL`, `AUTH_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, optionally sync overrides).
+2. Run migrations against production DB:
+   - `npm run db:generate`
+   - `npm run db:migrate`
+3. Verify admin login works.
+4. Verify `/leaderboard`, `/bracket/[id]`, `/entries`, `/admin/results`, and `/admin/team-slots`.
+5. Run sync once and confirm `SyncRun` + leaderboard updates.
+6. Confirm printing a bracket page from `/bracket/[id]`.
+
+## Important project docs
+
+- `PROJECT_SPEC.md` - milestone scope + product requirements
+- `AGENTS.md` - repo-level implementation rules
+- `docs/multi-bracket-alignment.md` - architecture alignment notes
+- `tasks/todo.md` - non-trivial task execution log
+- `tasks/lessons.md` - recurring mistake guardrails

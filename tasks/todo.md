@@ -478,3 +478,31 @@ Bracket-view-only behavior fix complete. The read-only bracket now compares user
 
 ## Review
 Duplicate bracket creation for the same participant + bracket type is now blocked at both application and database layers while preserving valid cross-type entries (one MAIN + one SECOND_CHANCE_S16 + one CHAMPIONSHIP). Update flow remains self-safe and returns friendly errors instead of raw DB exceptions.
+
+---
+
+# Task: Milestone 8 - Polish and Deployment
+
+## Plan
+- [x] Re-audit Milestone 8 requirements and identify highest-impact polish gaps in responsive layout, print behavior, UX states, and deployment safety.
+- [x] Apply responsive cleanup to core flows (`/leaderboard`, `/entries*`, `/bracket/[id]`, `/admin/results`, `/admin/team-slots`) without redesigning product behavior.
+- [x] Add print-friendly bracket-view support (hide app chrome, improve printable readability, avoid clipping).
+- [x] Add intentional loading/error/not-found states for key routes and improve weak empty/sync-feedback states where needed.
+- [x] Add deployment hardening improvements (env/config safety checks + sync robustness) without changing milestone 1–7 domain behavior.
+- [x] Update README and environment documentation (`.env.example`) to reflect real setup, operations, and deployment usage.
+- [x] Verify with `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update review notes and assumptions.
+
+## Progress Notes
+- 2026-03-20 15:55 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md` (including Milestone 8 section), `docs/multi-bracket-alignment.md`, `README.md`, `tasks/*`, and `.agents/skills/workflow-orchestration/SKILL.md`.
+- 2026-03-20 16:02 PDT - Completed implementation audit of public/admin pages, bracket view/edit components, auth/proxy setup, sync actions, package/scripts, Prisma config, and existing state-handling patterns.
+- 2026-03-20 16:03 PDT - Confirmed highest-value Milestone 8 gaps: mobile table overflow handling, missing print-focused styling/chrome suppression, missing route loading/error/not-found boundaries, missing `.env.example`, and weak admin sync success/failure feedback.
+- 2026-03-20 16:18 PDT - Applied responsive cleanup to header/nav/table-heavy pages and key admin forms/cards without changing route behavior or milestone 1–7 domain logic.
+- 2026-03-20 16:20 PDT - Added print-friendly bracket support (`Print Bracket` action + print CSS + print-specific bracket card/layout adjustments with chrome hidden in print).
+- 2026-03-20 16:24 PDT - Added route loading states plus global error and not-found pages, and improved empty/sync feedback states on admin and data tables.
+- 2026-03-20 16:29 PDT - Added deployment-focused hardening: production auth env assertions, NCAA sync fetch timeout guard (`NCAA_SCORES_FETCH_TIMEOUT_MS`), and `poweredByHeader: false`.
+- 2026-03-20 16:33 PDT - Updated docs for Milestone 8 operations and setup (`README.md`, `.env.example`) including auth/hash requirements, sync usage, and deployment checklist.
+- 2026-03-20 16:46 PDT - Verification passed: `npm run db:generate`, `npm run typecheck`, `npm run lint`, `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Milestone 8 implementation is complete and scoped to polish/deployment readiness. Core pages now handle small screens more reliably, bracket views are print-friendly, important loading/error/not-found and empty/sync-feedback states are intentional, and operational docs/env guidance are now practical for local setup and deployment. Existing milestone 1–7 behavior (multi-bracket architecture, scoring, admin flows, NCAA sync, and prior hardening fixes) remains intact.

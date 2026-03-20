@@ -102,7 +102,7 @@ export function AdminResultGameCard({
   }
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <article className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
       <div className="mb-3 space-y-1">
         <h4 className="font-medium text-slate-900">{slotLabel}</h4>
         <p className="text-xs text-slate-500">
@@ -232,7 +232,7 @@ export function AdminResultGameCard({
 
         <button
           type="submit"
-          className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-70"
+          className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-70 sm:w-auto"
           disabled={isPending}
         >
           {isPending ? "Saving..." : "Save Result"}

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { BracketEditor } from "@/components/bracket-editor";
+import { PrintBracketButton } from "@/components/print-bracket-button";
 import { BRACKET_TYPE_LABELS } from "@/lib/brackets/types";
 import { PageShell } from "@/components/page-shell";
 import { normalizeEntryPicksJson, normalizeEntryTiebreakerJson } from "@/lib/brackets/serialization";
@@ -57,6 +58,9 @@ export default async function BracketViewPage({
       title={entry.name}
       description={`Read-only saved ${BRACKET_TYPE_LABELS[entry.bracketType]}.`}
     >
+      <div className="mb-4 flex justify-end print:hidden">
+        <PrintBracketButton />
+      </div>
       <BracketEditor
         mode="view"
         bracketType={entry.bracketType}

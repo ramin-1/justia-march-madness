@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { AdminResultFormState } from "@/app/admin/results/action-state";
 import { getAvailableTeamsForGame, getTeamLabel, type TeamOption } from "@/lib/brackets/registry";
 import type { PicksByGameId } from "@/lib/brackets/types";
@@ -70,6 +71,24 @@ function isPrismaRecordNotFoundError(error: unknown) {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === "P2025"
   );
+}
+
+function buildAdminResultsPath(options?: {
+  syncStatus?: "success" | "error";
+  syncMessage?: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (options?.syncStatus) {
+    params.set("sync", options.syncStatus);
+  }
+
+  if (options?.syncMessage) {
+    params.set("syncMessage", options.syncMessage);
+  }
+
+  const queryString = params.toString();
+  return queryString.length > 0 ? `/admin/results?${queryString}` : "/admin/results";
 }
 
 export async function updateGameResultAction(
@@ -215,13 +234,38 @@ export async function updateGameResultAction(
 }
 
 export async function runNcaaSyncAction() {
+  let syncResult: Awaited<ReturnType<typeof syncNcaaResults>>;
+
   try {
-    await syncNcaaResults();
+    syncResult = await syncNcaaResults();
   } catch (error) {
     console.error("NCAA sync failed from admin trigger:", error);
+
+    revalidatePath("/admin/results");
+    revalidatePath("/leaderboard");
+    revalidatePath("/entries");
+
+    const syncErrorMessage =
+      error instanceof Error && error.message.trim().length > 0
+        ? error.message
+        : "NCAA sync failed. Please review sync logs and try again.";
+
+    redirect(
+      buildAdminResultsPath({
+        syncStatus: "error",
+        syncMessage: syncErrorMessage,
+      }),
+    );
   }
 
   revalidatePath("/admin/results");
   revalidatePath("/leaderboard");
   revalidatePath("/entries");
+
+  redirect(
+    buildAdminResultsPath({
+      syncStatus: "success",
+      syncMessage: `Sync complete. Parsed ${syncResult.parsedGames} game(s), matched ${syncResult.matchedGames}, and updated ${syncResult.updatedGames}.`,
+    }),
+  );
 }

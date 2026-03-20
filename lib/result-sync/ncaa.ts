@@ -18,6 +18,7 @@ type GameExtraction = {
 };
 
 const DEFAULT_NCAA_SCORES_BASE_URL = "https://www.ncaa.com/march-madness-live/scores/";
+const DEFAULT_NCAA_FETCH_TIMEOUT_MS = 15000;
 const FINAL_STATUS_PATTERNS = ["final", "completed", "complete", "post", "ended"] as const;
 const TEAM_ARRAY_KEYS = ["competitors", "teams", "participants", "contestants", "opponents"] as const;
 const TEAM_NAME_KEYS = ["name", "displayName", "shortName", "fullName", "teamName", "school"] as const;
@@ -748,6 +749,20 @@ function getDatePartsForScoresUrl(date: Date) {
   return { year, month, day };
 }
 
+function getNcaaFetchTimeoutMs(): number {
+  const rawTimeout = process.env.NCAA_SCORES_FETCH_TIMEOUT_MS?.trim();
+  if (!rawTimeout) {
+    return DEFAULT_NCAA_FETCH_TIMEOUT_MS;
+  }
+
+  const parsed = Number(rawTimeout);
+  if (!Number.isFinite(parsed) || parsed < 1000 || parsed > 120000) {
+    throw new Error("NCAA_SCORES_FETCH_TIMEOUT_MS must be between 1000 and 120000.");
+  }
+
+  return Math.trunc(parsed);
+}
+
 export function buildNcaaScoresUrl(date: Date = new Date()): string {
   const baseUrl = process.env.NCAA_SCORES_BASE_URL ?? DEFAULT_NCAA_SCORES_BASE_URL;
   return buildNcaaScoresUrlFromBase(baseUrl, date);
@@ -776,12 +791,33 @@ export async function fetchNcaaScoresHtml(): Promise<{
       : overrideUrl
     : buildNcaaScoresUrl();
   const sourceMode = overrideUrl ? (isBaseScoresOverride ? "override-base-url" : "override-url") : "date-builder";
-  const response = await fetch(sourceUrl, {
-    headers: {
-      "user-agent": "MarchMadnessCompanyChallengeBot/0.1 (+internal sync job)",
-    },
-    cache: "no-store",
-  });
+  const fetchTimeoutMs = getNcaaFetchTimeoutMs();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs);
+  let response: Response;
+
+  try {
+    response = await fetch(sourceUrl, {
+      headers: {
+        "user-agent": "MarchMadnessCompanyChallengeBot/0.1 (+internal sync job)",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.name === "AbortError" || controller.signal.aborted)
+    ) {
+      throw new Error(
+        `Timed out after ${fetchTimeoutMs}ms fetching NCAA scores from ${sourceUrl}.`,
+      );
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch NCAA scores from ${sourceUrl}: ${response.status}`);

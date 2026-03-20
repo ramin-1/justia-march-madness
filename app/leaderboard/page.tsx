@@ -109,44 +109,46 @@ function MainLeaderboardTable({
   rows: ReturnType<typeof buildMainLeaderboardRows>;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50 text-left">
-          <tr>
-            <th className="px-4 py-3 font-semibold">Rank</th>
-            <th className="px-4 py-3 font-semibold">Entry</th>
-            <th className="px-4 py-3 font-semibold">Participant</th>
-            <th className="px-4 py-3 font-semibold">Score</th>
-            <th className="px-4 py-3 font-semibold">Correct Picks</th>
-            <th className="px-4 py-3 font-semibold">Max Possible</th>
-          </tr>
-        </thead>
-
-        <tbody className="divide-y divide-slate-100">
-          {rows.length === 0 ? (
+    <div className="rounded-xl border bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="min-w-[760px] divide-y divide-slate-200 text-sm">
+          <thead className="bg-slate-50 text-left">
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
-                No main bracket entries yet.
-              </td>
+              <th className="px-4 py-3 font-semibold">Rank</th>
+              <th className="px-4 py-3 font-semibold">Entry</th>
+              <th className="px-4 py-3 font-semibold">Participant</th>
+              <th className="px-4 py-3 font-semibold">Score</th>
+              <th className="px-4 py-3 font-semibold">Correct Picks</th>
+              <th className="px-4 py-3 font-semibold">Max Possible</th>
             </tr>
-          ) : (
-            rows.map((entry) => (
-              <tr key={entry.id}>
-                <td className="px-4 py-3">{entry.rank}</td>
-                <td className="px-4 py-3">
-                  <Link href={`/bracket/${entry.id}`} className="font-medium text-slate-900 hover:underline">
-                    {entry.name}
-                  </Link>
+          </thead>
+
+          <tbody className="divide-y divide-slate-100">
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
+                  No main bracket entries yet.
                 </td>
-                <td className="px-4 py-3">{entry.participantName}</td>
-                <td className="px-4 py-3">{entry.score}</td>
-                <td className="px-4 py-3">{entry.correctPicks}</td>
-                <td className="px-4 py-3">{entry.maxPossibleScore}</td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              rows.map((entry) => (
+                <tr key={entry.id}>
+                  <td className="px-4 py-3">{entry.rank}</td>
+                  <td className="px-4 py-3">
+                    <Link href={`/bracket/${entry.id}`} className="font-medium text-slate-900 hover:underline">
+                      {entry.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">{entry.participantName}</td>
+                  <td className="px-4 py-3">{entry.score}</td>
+                  <td className="px-4 py-3">{entry.correctPicks}</td>
+                  <td className="px-4 py-3">{entry.maxPossibleScore}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -157,40 +159,42 @@ function SecondChanceLeaderboardTable({
   rows: ReturnType<typeof buildSecondChanceLeaderboardRows>;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50 text-left">
-          <tr>
-            <th className="px-4 py-3 font-semibold">Rank</th>
-            <th className="px-4 py-3 font-semibold">Entry</th>
-            <th className="px-4 py-3 font-semibold">Participant</th>
-            <th className="px-4 py-3 font-semibold">Score</th>
-          </tr>
-        </thead>
-
-        <tbody className="divide-y divide-slate-100">
-          {rows.length === 0 ? (
+    <div className="rounded-xl border bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="min-w-[680px] divide-y divide-slate-200 text-sm">
+          <thead className="bg-slate-50 text-left">
             <tr>
-              <td colSpan={4} className="px-4 py-8 text-center text-slate-600">
-                No second chance entries yet.
-              </td>
+              <th className="px-4 py-3 font-semibold">Rank</th>
+              <th className="px-4 py-3 font-semibold">Entry</th>
+              <th className="px-4 py-3 font-semibold">Participant</th>
+              <th className="px-4 py-3 font-semibold">Score</th>
             </tr>
-          ) : (
-            rows.map((entry) => (
-              <tr key={entry.id}>
-                <td className="px-4 py-3">{entry.rank}</td>
-                <td className="px-4 py-3">
-                  <Link href={`/bracket/${entry.id}`} className="font-medium text-slate-900 hover:underline">
-                    {entry.name}
-                  </Link>
+          </thead>
+
+          <tbody className="divide-y divide-slate-100">
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-slate-600">
+                  No second chance entries yet.
                 </td>
-                <td className="px-4 py-3">{entry.participantName}</td>
-                <td className="px-4 py-3">{entry.score}</td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              rows.map((entry) => (
+                <tr key={entry.id}>
+                  <td className="px-4 py-3">{entry.rank}</td>
+                  <td className="px-4 py-3">
+                    <Link href={`/bracket/${entry.id}`} className="font-medium text-slate-900 hover:underline">
+                      {entry.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">{entry.participantName}</td>
+                  <td className="px-4 py-3">{entry.score}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -208,42 +212,44 @@ function ChampionshipLeaderboardTable({
         </p>
       ) : null}
 
-      <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Rank</th>
-              <th className="px-4 py-3 font-semibold">Entry</th>
-              <th className="px-4 py-3 font-semibold">Participant</th>
-              <th className="px-4 py-3 font-semibold">Picked Winner</th>
-              <th className="px-4 py-3 font-semibold">Predicted Final Score</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-100">
-            {rows.length === 0 ? (
+      <div className="rounded-xl border bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-[860px] divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left">
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-600">
-                  No championship entries yet.
-                </td>
+                <th className="px-4 py-3 font-semibold">Rank</th>
+                <th className="px-4 py-3 font-semibold">Entry</th>
+                <th className="px-4 py-3 font-semibold">Participant</th>
+                <th className="px-4 py-3 font-semibold">Picked Winner</th>
+                <th className="px-4 py-3 font-semibold">Predicted Final Score</th>
               </tr>
-            ) : (
-              rows.map((entry) => (
-                <tr key={entry.id}>
-                  <td className="px-4 py-3">{entry.rank}</td>
-                  <td className="px-4 py-3">
-                    <Link href={`/bracket/${entry.id}`} className="font-medium text-slate-900 hover:underline">
-                      {entry.name}
-                    </Link>
+            </thead>
+
+            <tbody className="divide-y divide-slate-100">
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-600">
+                    No championship entries yet.
                   </td>
-                  <td className="px-4 py-3">{entry.participantName}</td>
-                  <td className="px-4 py-3">{entry.pickedWinnerLabel}</td>
-                  <td className="px-4 py-3">{entry.predictedFinalScore}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                rows.map((entry) => (
+                  <tr key={entry.id}>
+                    <td className="px-4 py-3">{entry.rank}</td>
+                    <td className="px-4 py-3">
+                      <Link href={`/bracket/${entry.id}`} className="font-medium text-slate-900 hover:underline">
+                        {entry.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">{entry.participantName}</td>
+                    <td className="px-4 py-3">{entry.pickedWinnerLabel}</td>
+                    <td className="px-4 py-3">{entry.predictedFinalScore}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

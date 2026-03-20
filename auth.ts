@@ -2,12 +2,18 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { z } from "zod";
-import { getAdminUsername, requireConfiguredAdminPasswordHash } from "@/lib/auth/config";
+import {
+  assertAuthEnvironment,
+  getAdminUsername,
+  requireConfiguredAdminPasswordHash,
+} from "@/lib/auth/config";
 
 const credentialsSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
 });
+
+assertAuthEnvironment();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {

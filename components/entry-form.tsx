@@ -63,7 +63,7 @@ export function EntryForm({
   );
 
   return (
-    <form action={formAction} className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
+    <form action={formAction} className="space-y-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6">
       {entryId ? <input type="hidden" name="id" value={entryId} /> : null}
 
       <div className="grid gap-5 md:grid-cols-2">
@@ -145,7 +145,7 @@ export function EntryForm({
         </p>
       ) : null}
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
         <button
           type="submit"
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-70"

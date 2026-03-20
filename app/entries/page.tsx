@@ -97,7 +97,7 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
       title="Entries"
       description="Manage bracket entries. Search, add, edit, and delete entries from this admin page."
     >
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div className="mb-4 flex flex-col items-stretch gap-3 xl:flex-row xl:items-end xl:justify-between">
         <form className="grid w-full max-w-2xl gap-3 md:grid-cols-2" method="GET">
           <div>
             <label htmlFor="entry-search" className="mb-1 block text-sm font-medium text-slate-700">
@@ -143,7 +143,7 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
 
         <Link
           href="/entries/new"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+          className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
         >
           Add Bracket
         </Link>
@@ -161,60 +161,62 @@ export default async function EntriesPage({ searchParams }: EntriesPageProps) {
         </p>
       ) : null}
 
-      <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Entry</th>
-              <th className="px-4 py-3 font-semibold">Participant</th>
-              <th className="px-4 py-3 font-semibold">Bracket Type</th>
-              <th className="px-4 py-3 font-semibold">Score</th>
-              <th className="px-4 py-3 font-semibold">Updated</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {entries.length === 0 ? (
+      <div className="rounded-xl border bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-[900px] divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left">
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
-                  {query
-                    ? `No entries found for "${query}".`
-                    : "No entries yet. Add your first bracket entry."}
-                </td>
+                <th className="px-4 py-3 font-semibold">Entry</th>
+                <th className="px-4 py-3 font-semibold">Participant</th>
+                <th className="px-4 py-3 font-semibold">Bracket Type</th>
+                <th className="px-4 py-3 font-semibold">Score</th>
+                <th className="px-4 py-3 font-semibold">Updated</th>
+                <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
-            ) : (
-              entries.map((entry) => (
-                <tr key={entry.id}>
-                  <td className="px-4 py-3">
-                    <Link href={`/bracket/${entry.id}`} className="font-medium">
-                      {entry.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">{entry.participantName}</td>
-                  <td className="px-4 py-3">{BRACKET_TYPE_LABELS[entry.bracketType]}</td>
-                  <td className="px-4 py-3">{entry.totalScore}</td>
-                  <td className="px-4 py-3">
-                    {new Intl.DateTimeFormat("en-US", {
-                      dateStyle: "medium",
-                    }).format(entry.updatedAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Link href={`/bracket/${entry.id}`}>View</Link>
-                      <Link href={`/entries/${entry.id}/edit`}>Edit</Link>
-                      <DeleteEntryButton
-                        entryId={entry.id}
-                        entryName={entry.name}
-                        query={query}
-                        bracketType={bracketType}
-                      />
-                    </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {entries.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
+                    {query
+                      ? `No entries found for "${query}".`
+                      : "No entries yet. Add your first bracket entry."}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                entries.map((entry) => (
+                  <tr key={entry.id}>
+                    <td className="px-4 py-3">
+                      <Link href={`/bracket/${entry.id}`} className="font-medium">
+                        {entry.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">{entry.participantName}</td>
+                    <td className="px-4 py-3">{BRACKET_TYPE_LABELS[entry.bracketType]}</td>
+                    <td className="px-4 py-3">{entry.totalScore}</td>
+                    <td className="px-4 py-3">
+                      {new Intl.DateTimeFormat("en-US", {
+                        dateStyle: "medium",
+                      }).format(entry.updatedAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Link href={`/bracket/${entry.id}`}>View</Link>
+                        <Link href={`/entries/${entry.id}/edit`}>Edit</Link>
+                        <DeleteEntryButton
+                          entryId={entry.id}
+                          entryName={entry.name}
+                          query={query}
+                          bracketType={bracketType}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </PageShell>
   );

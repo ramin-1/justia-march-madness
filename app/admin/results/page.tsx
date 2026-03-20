@@ -177,7 +177,25 @@ function groupGamesByRegion(games: GameRow[]) {
   return groupedGames;
 }
 
-export default async function AdminResultsPage() {
+function getSingleSearchParam(value: string | string[] | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return Array.isArray(value) ? value[0] : value;
+}
+
+type AdminResultsPageProps = {
+  searchParams: Promise<{
+    sync?: string | string[];
+    syncMessage?: string | string[];
+  }>;
+};
+
+export default async function AdminResultsPage({ searchParams }: AdminResultsPageProps) {
+  const params = await searchParams;
+  const syncStatus = getSingleSearchParam(params.sync);
+  const syncMessage = getSingleSearchParam(params.syncMessage);
   const rounds = getTemplateRoundConfigs("MAIN");
 
   const [games, latestSyncRun] = await Promise.all([
@@ -240,6 +258,18 @@ export default async function AdminResultsPage() {
       title="Admin Results"
       description="Update canonical game outcomes and recalculate standings across all bracket types."
     >
+      {syncStatus === "success" && syncMessage ? (
+        <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          {syncMessage}
+        </p>
+      ) : null}
+
+      {syncStatus === "error" && syncMessage ? (
+        <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          {syncMessage}
+        </p>
+      ) : null}
+
       <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
         Mark a game as <span className="font-semibold">Final</span> when winner and scores are known.
         Saving a result triggers standings recalculation for Main, Second Chance, and Championship
@@ -256,10 +286,10 @@ export default async function AdminResultsPage() {
             </p>
           </div>
 
-          <form action={runNcaaSyncAction}>
+          <form action={runNcaaSyncAction} className="w-full md:w-auto">
             <button
               type="submit"
-              className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 md:w-auto"
             >
               Sync NCAA Results
             </button>
@@ -299,6 +329,12 @@ export default async function AdminResultsPage() {
           )}
         </div>
       </div>
+
+      {rounds.length === 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
+          No tournament rounds are configured yet. Check bracket configuration before managing results.
+        </div>
+      ) : null}
 
       <div className="space-y-8">
         {rounds.map((round) => {
@@ -346,7 +382,7 @@ export default async function AdminResultsPage() {
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
                       {region}
                     </h3>
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                       {regionGames.map((game) => {
                         const availableTeams = getAvailableTeamsForGame({
                           bracketType: "MAIN",

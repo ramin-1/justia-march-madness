@@ -44,7 +44,7 @@ export function AdminLoginForm({
 
   return (
     <form
-      className="max-w-md space-y-4 rounded-xl border bg-white p-6 shadow-sm"
+      className="max-w-md space-y-4 rounded-xl border bg-white p-4 shadow-sm sm:p-6"
       onSubmit={onSubmit}
     >
       <div>
@@ -84,7 +84,7 @@ export function AdminLoginForm({
 
       <button
         type="submit"
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-70"
+        className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-70 sm:w-auto"
         disabled={isSubmitting}
       >
         {isSubmitting ? "Signing in..." : "Sign in"}

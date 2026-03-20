@@ -145,10 +145,10 @@ export function BracketEditor({
   }
 
   return (
-    <section className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
+    <section className="space-y-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6 print:space-y-4 print:border-0 print:bg-transparent print:p-0 print:shadow-none">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">{BRACKET_TYPE_LABELS[bracketType]}</h2>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <h2 className="text-lg font-semibold print:text-base">{BRACKET_TYPE_LABELS[bracketType]}</h2>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600 print-hide">
           {mode}
         </span>
       </div>
@@ -165,7 +165,7 @@ export function BracketEditor({
             <p className="text-xs text-slate-600">{round.description}</p>
           </header>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 print:grid-cols-2 print:gap-2">
             {round.gameIds.map((gameId) => {
               const game = getCanonicalGame(gameId);
               const availableTeams = availableTeamsByGameId[gameId] ?? [];
@@ -182,7 +182,10 @@ export function BracketEditor({
               const pickError = fieldErrors?.[pickFieldKey]?.[0];
 
               return (
-                <article key={gameId} className="rounded-lg border border-slate-200 p-4">
+                <article
+                  key={gameId}
+                  className="print-break-avoid rounded-lg border border-slate-200 p-3 sm:p-4 print:border-slate-300 print:p-2"
+                >
                   <div className="mb-3 space-y-1">
                     <h4 className="font-medium text-slate-900">{game.slotLabel}</h4>
                     <p className="text-xs text-slate-500">
@@ -196,7 +199,7 @@ export function BracketEditor({
                       Select upstream winners to unlock this game.
                     </p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 print:space-y-1">
                       {availableTeams.map((teamOption) => {
                         const checked = selectedWinnerTeamKey === teamOption.key;
 
@@ -204,7 +207,7 @@ export function BracketEditor({
                           return (
                             <label
                               key={teamOption.key}
-                              className="flex items-center gap-2 rounded-md border border-slate-200 p-2 text-sm"
+                            className="flex items-center gap-2 rounded-md border border-slate-200 p-2 text-sm print:p-1"
                             >
                               <input
                                 type="radio"
@@ -229,7 +232,7 @@ export function BracketEditor({
                         return (
                           <div
                             key={teamOption.key}
-                            className={`rounded-md border p-2 text-sm ${selectedClass}`}
+                            className={`rounded-md border p-2 text-sm print:p-1 ${selectedClass}`}
                           >
                             {teamOption.label}
                           </div>
@@ -239,7 +242,7 @@ export function BracketEditor({
                   )}
 
                   {mode === "view" && actualWinnerLabel ? (
-                    <p className="mt-2 text-xs text-slate-600">
+                    <p className="mt-2 text-xs text-slate-600 print:mt-1">
                       Winner: {actualWinnerLabel}
                     </p>
                   ) : null}
