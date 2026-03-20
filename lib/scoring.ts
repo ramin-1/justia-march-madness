@@ -4,6 +4,7 @@ import {
   getTemplateGameIds,
   type BracketRoundKey,
 } from "@/lib/brackets/registry";
+import { isFinalGameResultStatus } from "@/lib/results/status";
 import type { PicksByGameId } from "@/lib/brackets/types";
 
 export const MAIN_ROUND_POINTS = {
@@ -154,11 +155,6 @@ function resolveWinnerTeamKey(game: GameResultRow): string | null {
   return resolveTeamKeyFromLabel(winnerTeam);
 }
 
-function isResolvedStatus(status: string | null | undefined): boolean {
-  const normalizedStatus = normalizeNonEmptyString(status)?.toLowerCase();
-  return normalizedStatus === "resolved" || normalizedStatus === "final";
-}
-
 export function createGameResultsIndex(
   games: GameResultRow[],
 ): Map<string, GameResultSnapshot> {
@@ -182,7 +178,7 @@ export function createGameResultsIndex(
     byGameId.set(game.id, {
       id: game.id,
       round,
-      isResolved: isResolvedStatus(game.status) || winnerTeamKey !== null,
+      isResolved: isFinalGameResultStatus(game.status),
       winnerTeamKey,
       homeTeamKey,
       awayTeamKey,

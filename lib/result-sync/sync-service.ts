@@ -47,7 +47,7 @@ export async function syncNcaaResults() {
         data: {
           winnerTeam: scrapedGame.winnerTeam,
           winnerTeamKey,
-          status: "resolved",
+          status: "final",
           syncSource: "ncaa",
           lastSyncedAt: new Date(),
         },

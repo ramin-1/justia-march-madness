@@ -42,3 +42,24 @@ YYYY-MM-DD
 **Pattern**: Manually naming migration directories without validating lexicographic apply order.
 **Rule**: Any migration that alters existing tables must sort after all table-creation migrations; always sanity-check `find prisma/migrations -name migration.sql | sort` before finalizing.
 **Applied**: Renamed milestone-5 migration directory to sort after `init` and confirmed create-before-alter ordering for `Game`.
+
+## 2026-03-19 - Final-Only Game Completion Semantics
+
+**Mistake**: Left both `resolved` and `final` as completed game statuses after Milestone 6, which created unnecessary dual-status behavior.
+**Pattern**: Introducing parallel status meanings instead of enforcing one canonical completed state.
+**Rule**: For tournament result workflows, keep one canonical completed status (`final`) and provide explicit migration/compatibility handling for any legacy aliases.
+**Applied**: Removed `resolved` from admin status options/validation, moved completion checks to final-only helpers, switched sync writes to `final`, and added a migration that maps legacy `resolved` rows to `final`.
+
+## 2026-03-19 - Server Action Form Reset UX
+
+**Mistake**: Used uncontrolled form fields (`defaultValue`) in `AdminResultGameCard` with a server action, causing visual field reset to stale initial props after submit.
+**Pattern**: Assuming successful server action submit will automatically keep client form controls in sync with persisted values.
+**Rule**: For mutation-heavy admin forms, use controlled local state when immediate post-submit visual consistency is required.
+**Applied**: Converted admin result card inputs (status/winner/scores) to controlled state and handled non-final status transitions by clearing dependent fields in the client state.
+
+## 2026-03-19 - Canonical Post-Save Action Payload for UI Sync
+
+**Mistake**: Stopped at controlled inputs only and did not return/apply canonical saved values from the server action, so cards could still visually drift back to stale values after submit.
+**Pattern**: Relying on local form state alone without an authoritative post-mutation payload to reconcile UI state after server action lifecycle updates.
+**Rule**: For server-action mutation UIs where immediate post-save accuracy matters, return canonical persisted fields from the action and sync the client state from that success payload.
+**Applied**: Extended admin result action-state with `savedValues`, returned persisted game fields from `updateGameResultAction`, and synced card state from successful action responses.

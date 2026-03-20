@@ -216,3 +216,91 @@ Migration chain ordering is now internally consistent from an empty database. Lo
 
 ## Review
 Config cleanup complete. Prisma now uses `prisma.config.ts` as the primary config source with equivalent schema/migration/seed settings, and the deprecated `package.json#prisma` warning is removed.
+
+---
+
+# Task: Milestone 6 - Admin Results Management UI
+
+## Plan
+- [x] Re-read required instructions/spec/docs and confirm the existing auth + standings recalculation integration points.
+- [x] Add centralized typed validation for manual game result updates (status, winner, scores) with resolved/unresolved rules.
+- [x] Implement server-side admin result mutation action(s) that persist canonical `Game` fields and trigger standings recalculation.
+- [x] Replace `/admin/results` placeholder with a practical grouped admin editor (round + region) and clear success/error feedback.
+- [x] Verify no regressions to multi-bracket behavior and run `npm run db:generate`, `npm run typecheck`, `npm run lint`, `npm run build`.
+- [x] Update task progress/review notes with final outcomes and any assumptions.
+
+## Progress Notes
+- 2026-03-19 20:13 PDT - Began Milestone 6 pass after re-reading `AGENTS.md`, `PROJECT_SPEC.md`, `docs/multi-bracket-alignment.md`, `tasks/*`, and `.agents/skills/workflow-orchestration/SKILL.md`.
+- 2026-03-19 20:15 PDT - Audited current implementation and confirmed `/admin/results` is scaffold-only while auth protection and standings recalculation primitives are already implemented.
+- 2026-03-19 20:25 PDT - Added centralized result-update validation in `lib/results/validation.ts` for status/winner/score parsing plus resolved/unresolved rules.
+- 2026-03-19 20:31 PDT - Implemented `/admin/results` server action flow (`app/admin/results/actions.ts`) to update canonical `Game` rows and reuse `recalculateEntryStandings()` after successful result saves.
+- 2026-03-19 20:37 PDT - Replaced scaffold `/admin/results` with grouped round/region UI and per-game editable cards + inline success/error feedback.
+- 2026-03-19 20:46 PDT - Verification complete: `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Milestone 6 is now implemented with a protected, practical admin results workflow. Admins can edit game status, winner team key, and scores directly on `/admin/results`; updates persist to canonical `Game` rows and trigger centralized standings recalculation so `MAIN`, `SECOND_CHANCE_S16`, and `CHAMPIONSHIP` leaderboard behavior stays aligned.
+
+---
+
+# Task: Milestone 6 Follow-Up - Final-Only Status + Participant-Aware Score Labels
+
+## Plan
+- [x] Re-audit all `resolved` status references across admin results, scoring, and sync paths.
+- [x] Update status handling so `final` is the only completed/scored state and align validation rules accordingly.
+- [x] Add safe compatibility handling for pre-existing `resolved` rows without broad schema churn.
+- [x] Replace `Home score`/`Away score` labels with participant-aware labels (team names when known; canonical participant slot labels otherwise).
+- [x] Verify with `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update task review + lessons notes for this user-directed correction.
+
+## Progress Notes
+- 2026-03-19 22:02 PDT - Started follow-up pass and re-read `AGENTS.md`, `PROJECT_SPEC.md`, `docs/multi-bracket-alignment.md`, current Milestone 6 files, and `tasks/*`.
+- 2026-03-19 22:05 PDT - Completed repository scan for `resolved` references in scoring/status-validation/admin-results/sync code paths to prepare a consistent final-only update.
+- 2026-03-19 22:12 PDT - Added centralized game-status helpers in `lib/results/status.ts` and switched validation/UI/scoring imports to use final-only status options.
+- 2026-03-19 22:16 PDT - Updated scoring completion logic to be final-only and updated NCAA sync writes to persist `status: "final"`.
+- 2026-03-19 22:20 PDT - Reworked admin results score input labels to participant-aware text with fallback order: actual team labels -> derived available teams -> canonical slot-based participant labels.
+- 2026-03-19 22:25 PDT - Added migration `20260319113000_milestone6_final_status` to map any legacy `resolved` game statuses to `final`.
+- 2026-03-19 22:30 PDT - Verification complete: `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Follow-up complete. `/admin/results` now offers only unfinished statuses plus `final`, scoring/recalculation treat `final` as the completed state, and score inputs render participant-aware labels across rounds (including canonical fallback labels when team names are not yet known). Legacy `resolved` data is handled via targeted migration plus normalization guardrails.
+
+---
+
+# Task: Milestone 6 Follow-Up - Admin Results Post-Submit Visual Sync
+
+## Plan
+- [x] Re-read required project files and inspect admin results page/action/card state flow.
+- [x] Diagnose why status/winner visually reset after successful server-action submit.
+- [x] Implement the smallest UI-state fix so cards keep showing saved status/winner/scores immediately after save.
+- [x] Keep persistence/scoring/standings behavior unchanged.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Capture review notes and lesson.
+
+## Progress Notes
+- 2026-03-19 22:41 PDT - Reproduced root cause from code inspection: uncontrolled `defaultValue` form fields were resetting after server-action submit, reflecting stale initial props until a full refresh.
+- 2026-03-19 22:47 PDT - Switched `AdminResultGameCard` fields (status, winner, home score, away score) to controlled local state so browser form-reset behavior no longer snaps the card back to stale defaults after submit.
+- 2026-03-19 22:53 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Visual post-submit reset bug is fixed. After saving a game result, the card now continues displaying the saved status/winner/scores immediately, without requiring refresh, while existing persistence and leaderboard recalculation behavior remain unchanged.
+
+---
+
+# Task: Milestone 6 Follow-Up - Admin Results Canonical Post-Save Card Sync
+
+## Plan
+- [x] Re-read required project/spec/admin-results files and inspect the existing post-submit state flow.
+- [x] Identify why the UI can still show stale values after successful save despite controlled inputs.
+- [x] Update the admin results action/state shape to return canonical saved game values on success.
+- [x] Sync card-local state from successful action payload so `pending -> final` and `final -> pending` both reflect persisted values immediately.
+- [x] Keep persistence/scoring/leaderboard behavior unchanged and run verification checks.
+- [x] Record progress/review notes and capture the correction in `tasks/lessons.md`.
+
+## Progress Notes
+- 2026-03-19 23:27 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, and current admin results files (`page.tsx`, `actions.ts`, `action-state.ts`, `admin-result-game-card.tsx`) for this post-Milestone-6 follow-up.
+- 2026-03-19 23:29 PDT - Identified remaining root cause path: successful server action response did not include canonical saved values, so the card had no authoritative post-submit state source and could visually fall back to stale values during/after submit lifecycle updates.
+- 2026-03-19 23:31 PDT - Added `savedValues` to admin result action state and updated `updateGameResultAction` to return persisted `status`, `winnerTeamKey`, `homeScore`, and `awayScore` from Prisma update response.
+- 2026-03-19 23:33 PDT - Updated `AdminResultGameCard` to render from successful `savedValues` with local-edit gating, ensuring immediate visual sync for both `pending -> final` and `final -> pending` without refresh.
+
+## Review
+This follow-up is complete and tightly scoped to the visual sync bug. Cards now sync from canonical saved action payload values immediately after save, while existing result persistence and standings recalculation behavior remain unchanged.
