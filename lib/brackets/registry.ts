@@ -447,6 +447,9 @@ for (const game of CANONICAL_GAMES) {
     teamLabelByKey.set(teamOption.key, teamOption.label);
   }
 }
+const canonicalTeamSlots = [...teamLabelByKey.entries()]
+  .map(([key, label]) => ({ key, label }))
+  .sort((slotA, slotB) => slotA.label.localeCompare(slotB.label));
 
 function dedupeTeamOptions(options: readonly TeamOption[]): TeamOption[] {
   const seen = new Set<string>();
@@ -462,6 +465,16 @@ function dedupeTeamOptions(options: readonly TeamOption[]): TeamOption[] {
   }
 
   return deduped;
+}
+
+function withResolvedTeamLabels(
+  options: readonly TeamOption[],
+  teamLabelOverridesByKey?: Record<string, string>,
+): TeamOption[] {
+  return options.map((option) => ({
+    ...option,
+    label: getTeamLabel(option.key, teamLabelOverridesByKey),
+  }));
 }
 
 export function getBracketTemplate(bracketType: BracketType): BracketTemplateConfig {
@@ -486,7 +499,20 @@ export function getCanonicalGame(gameId: string): CanonicalGameConfig {
   return game;
 }
 
-export function getTeamLabel(teamKey: string): string {
+export function getCanonicalTeamSlots(): TeamOption[] {
+  return canonicalTeamSlots.map((slot) => ({ ...slot }));
+}
+
+export function getTeamLabel(
+  teamKey: string,
+  teamLabelOverridesByKey?: Record<string, string>,
+): string {
+  const overrideLabel = teamLabelOverridesByKey?.[teamKey];
+
+  if (typeof overrideLabel === "string" && overrideLabel.trim().length > 0) {
+    return overrideLabel.trim();
+  }
+
   return teamLabelByKey.get(teamKey) ?? teamKey;
 }
 
@@ -502,16 +528,21 @@ export function getAvailableTeamsForGame({
   bracketType,
   gameId,
   picksByGameId,
+  teamLabelOverridesByKey,
 }: {
   bracketType: BracketType;
   gameId: string;
   picksByGameId: PicksByGameId;
+  teamLabelOverridesByKey?: Record<string, string>;
 }): TeamOption[] {
   const game = getCanonicalGame(gameId);
   const template = getBracketTemplate(bracketType);
 
   if (!game.sourceGameIds || game.sourceGameIds.length === 0) {
-    return dedupeTeamOptions(game.initialTeams ?? []);
+    return withResolvedTeamLabels(
+      dedupeTeamOptions(game.initialTeams ?? []),
+      teamLabelOverridesByKey,
+    );
   }
 
   const templateGameIds = new Set(getTemplateGameIds(bracketType));
@@ -524,7 +555,7 @@ export function getAvailableTeamsForGame({
     if (isWinnerPick(sourcePick)) {
       sourceWinnerTeams.push({
         key: sourcePick.winnerTeamKey,
-        label: getTeamLabel(sourcePick.winnerTeamKey),
+        label: getTeamLabel(sourcePick.winnerTeamKey, teamLabelOverridesByKey),
       });
       continue;
     }
@@ -536,7 +567,10 @@ export function getAvailableTeamsForGame({
 
   if (missingTemplateSourceWinner) {
     if (template.dependencyMode === "allow-initial-fallback") {
-      return dedupeTeamOptions([...(game.fixedTeams ?? []), ...(game.initialTeams ?? [])]);
+      return withResolvedTeamLabels(
+        dedupeTeamOptions([...(game.fixedTeams ?? []), ...(game.initialTeams ?? [])]),
+        teamLabelOverridesByKey,
+      );
     }
 
     return [];
@@ -548,9 +582,10 @@ export function getAvailableTeamsForGame({
       ...sourceWinnerTeams,
     ]);
 
-    return resolvedTeams.length > 0
-      ? resolvedTeams
-      : dedupeTeamOptions(game.initialTeams ?? []);
+    return withResolvedTeamLabels(
+      resolvedTeams.length > 0 ? resolvedTeams : dedupeTeamOptions(game.initialTeams ?? []),
+      teamLabelOverridesByKey,
+    );
   }
 
   const fallbackTeams = dedupeTeamOptions([
@@ -560,12 +595,17 @@ export function getAvailableTeamsForGame({
   ]);
 
   if (fallbackTeams.length > 0) {
-    return fallbackTeams;
+    return withResolvedTeamLabels(fallbackTeams, teamLabelOverridesByKey);
   }
 
-  return template.dependencyMode === "allow-initial-fallback"
-    ? dedupeTeamOptions(game.initialTeams ?? [])
-    : [];
+  if (template.dependencyMode === "allow-initial-fallback") {
+    return withResolvedTeamLabels(
+      dedupeTeamOptions(game.initialTeams ?? []),
+      teamLabelOverridesByKey,
+    );
+  }
+
+  return [];
 }
 
 export function sanitizePicksForTemplate({

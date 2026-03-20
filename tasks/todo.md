@@ -386,3 +386,50 @@ Follow-up fix is scoped to parser extraction reliability and sync observability.
 
 ## Review
 Follow-up complete with a narrow, production-friendly fix. The West/Midwest ambiguity set is resolved without rewriting matching logic, fallback parsing remains JSON-first + HTML fallback, and sync summaries now include small region diagnostics to make extraction confidence easier to verify.
+
+---
+
+# Task: Pre-Milestone-8 Follow-Up - Team Name Display + Manual Slot Assignment Admin
+
+## Plan
+- [x] Re-read required docs and inspect bracket display helpers, canonical slot definitions, admin protection pattern, and Prisma schema.
+- [x] Add a centralized team-label override source that prefers known canonical game team names and supports manual admin overrides.
+- [x] Wire bracket editor/view display to use centralized team-label overrides with placeholder fallback only when unknown.
+- [x] Add a protected admin page to view/update manual slot assignments.
+- [x] Add minimal persistence for manual slot assignments (small Prisma schema + migration) and keep route/auth conventions aligned.
+- [x] Verify with `npm run db:generate`, `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-20 14:01 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `docs/multi-bracket-alignment.md`, and inspected current bracket rendering, canonical slot metadata, admin route protection, and schema state.
+- 2026-03-20 14:10 PDT - Added centralized team-label override helper (`lib/brackets/team-labels.ts`) that combines manual assignments + canonical game team names (manual assignment precedence).
+- 2026-03-20 14:14 PDT - Extended bracket registry label resolution to accept optional overrides and wired bracket editor/view/new/edit flows to use shared override labels.
+- 2026-03-20 14:18 PDT - Added protected `/admin/team-slots` page + server actions for save/clear manual slot assignments; updated nav and proxy protection matcher.
+- 2026-03-20 14:22 PDT - Added minimal Prisma model + migration for manual slot persistence (`TeamSlotAssignment`).
+- 2026-03-20 14:27 PDT - Added table-existence guard in team-label helper to avoid build-time errors when local DB has not been migrated yet.
+- 2026-03-20 14:30 PDT - Runtime sanity check confirmed shared override map resolves canonical slot keys to actual names when known (for example `EAST_16A -> Siena`, `WEST_11A -> NC State`).
+- 2026-03-20 14:31 PDT - Verification complete: `npm run db:generate`, `npm run typecheck`, `npm run lint`, `npm run build` (build ran with escalated permissions in this sandbox).
+
+## Review
+Follow-up complete and tightly scoped. Bracket UI now prefers actual known team names (from synced/manual canonical game data) and only falls back to slot placeholders when unknown. A protected admin fallback page now allows manual slot-key team-name assignment, and those assignments feed the same centralized display logic used by bracket rendering.
+
+---
+
+# Task: Team Slot Assignment Read-Path + Revalidation Bug Fix
+
+## Plan
+- [x] Re-read required files and confirm exact root cause(s) across label resolution and cache invalidation.
+- [x] Patch centralized bracket label resolution so manual/synced overrides apply consistently to all rendered team options (`initialTeams`, `fixedTeams`, and dependency-derived winners).
+- [x] Patch `/admin/team-slots` save/clear revalidation so updated labels propagate to `/entries/new`, `/entries/[id]/edit`, and `/bracket/[id]`.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update progress/review notes with root-cause confirmation.
+
+## Progress Notes
+- 2026-03-20 14:41 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `tasks/*`, workflow skill guidance, and inspected required files for this bug (`team-labels`, bracket registry/editor/form/pages, and `/admin/team-slots` actions).
+- 2026-03-20 14:43 PDT - Confirmed read-path gap: `getAvailableTeamsForGame()` only applied overrides to dependency winner picks, but returned raw placeholder labels for `initialTeams`/`fixedTeams`.
+- 2026-03-20 14:44 PDT - Confirmed revalidation gap: `/admin/team-slots` actions only revalidated a subset of routes and did not include dynamic bracket/edit paths.
+- 2026-03-20 14:49 PDT - Updated `lib/brackets/registry.ts` to resolve display labels through overrides for every return path in `getAvailableTeamsForGame()` (initial teams, fixed teams, and fallback dependency combinations).
+- 2026-03-20 14:50 PDT - Expanded `/admin/team-slots` revalidation to include `/entries` layout plus dynamic page patterns for `/entries/[id]/edit` and `/bracket/[id]`.
+- 2026-03-20 14:52 PDT - Verification passed: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack port/process restrictions).
+
+## Review
+Bug fix complete. Root cause was both read-path wiring and revalidation scope. Manual team-slot assignments now flow through the centralized label resolver for all bracket team options, and route cache invalidation now covers the create/edit/view bracket surfaces that display those labels.

@@ -27,6 +27,7 @@ export function EntryForm({
   defaultBracketType = "MAIN",
   defaultPicksByGameId = {},
   defaultScoresByTeamKey = {},
+  teamLabelOverridesByKey = {},
 }: {
   mode: "create" | "edit";
   submitAction: EntryFormAction;
@@ -35,6 +36,7 @@ export function EntryForm({
   defaultBracketType?: BracketType;
   defaultPicksByGameId?: PicksByGameId;
   defaultScoresByTeamKey?: Record<string, number>;
+  teamLabelOverridesByKey?: Record<string, string>;
 }) {
   const [state, formAction, isPending] = useActionState(
     submitAction,
@@ -134,6 +136,7 @@ export function EntryForm({
         initialPicksByGameId={editorInitialPicks}
         initialScoresByTeamKey={editorInitialScores}
         fieldErrors={state.fieldErrors}
+        teamLabelOverridesByKey={teamLabelOverridesByKey}
       />
 
       {state.message ? (

@@ -77,3 +77,10 @@ YYYY-MM-DD
 **Pattern**: Using `includes()` checks with overlapping substrings in the wrong order.
 **Rule**: In normalization functions with overlapping tokens, always match the more specific token first (for example `midwest` before `west`) and keep parser + matcher normalization behavior aligned.
 **Applied**: Reordered region normalization checks in both NCAA parsing and canonical matching code, then verified March 19 West/Midwest ambiguities dropped to zero.
+
+## 2026-03-20 - Team Label Override Coverage + Route Revalidation Scope
+
+**Mistake**: Wired manual/synced label overrides into some bracket display paths but left `initialTeams`/`fixedTeams` branches returning raw placeholder labels; also revalidated only a subset of affected routes after slot assignment writes.
+**Pattern**: Applying centralized display logic only on dependency-derived winners and forgetting static/fallback option branches and dynamic-route cache invalidation.
+**Rule**: When adding a centralized label override resolver, apply it to every return path that emits team options, and revalidate all consuming route patterns (including dynamic pages) after admin writes.
+**Applied**: Updated `getAvailableTeamsForGame()` to resolve labels across all branches and expanded `/admin/team-slots` revalidation to include `/entries` layout, `/entries/[id]/edit`, and `/bracket/[id]`.

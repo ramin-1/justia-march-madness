@@ -54,3 +54,10 @@ model SyncRun {
   status     String
   summaryJson Json
 }
+
+model TeamSlotAssignment {
+  teamKey   String   @id
+  teamName  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

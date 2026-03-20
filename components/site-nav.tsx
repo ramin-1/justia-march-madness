@@ -14,6 +14,7 @@ const navSections = [
       { href: "/entries", label: "Admin Entries" },
       { href: "/entries/new", label: "Admin New Entry" },
       { href: "/admin/results", label: "Admin Results" },
+      { href: "/admin/team-slots", label: "Admin Team Slots" },
     ],
   },
 ];

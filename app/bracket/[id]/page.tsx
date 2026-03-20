@@ -3,6 +3,7 @@ import { BracketEditor } from "@/components/bracket-editor";
 import { BRACKET_TYPE_LABELS } from "@/lib/brackets/types";
 import { PageShell } from "@/components/page-shell";
 import { normalizeEntryPicksJson, normalizeEntryTiebreakerJson } from "@/lib/brackets/serialization";
+import { getTeamLabelOverridesByKey } from "@/lib/brackets/team-labels";
 import { prisma } from "@/lib/prisma";
 
 export default async function BracketViewPage({
@@ -28,6 +29,7 @@ export default async function BracketViewPage({
   const normalizedPicksJson = normalizeEntryPicksJson(entry.picksJson, entry.bracketType);
   const normalizedTiebreakerJson = normalizeEntryTiebreakerJson(entry.tiebreakerJson);
   const scoreMap = normalizedTiebreakerJson?.championship.predictedScoresByTeamKey ?? {};
+  const teamLabelOverridesByKey = await getTeamLabelOverridesByKey();
 
   return (
     <PageShell
@@ -39,6 +41,7 @@ export default async function BracketViewPage({
         bracketType={entry.bracketType}
         initialPicksByGameId={normalizedPicksJson.picksByGameId}
         initialScoresByTeamKey={scoreMap}
+        teamLabelOverridesByKey={teamLabelOverridesByKey}
       />
     </PageShell>
   );

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 
-const protectedPrefixes = ["/entries", "/admin/results"];
+const protectedPrefixes = ["/entries", "/admin/results", "/admin/team-slots"];
 
 function isProtectedPath(pathname: string) {
   return protectedPrefixes.some(
@@ -26,5 +26,10 @@ export const proxy = auth((request) => {
 });
 
 export const config = {
-  matcher: ["/entries/:path*", "/admin/results"],
+  matcher: [
+    "/entries/:path*",
+    "/admin/results",
+    "/admin/team-slots",
+    "/admin/team-slots/:path*",
+  ],
 };

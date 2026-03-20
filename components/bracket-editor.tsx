@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   getAvailableTeamsForGame,
   getCanonicalGame,
+  getTeamLabel,
   getTemplateGameIds,
   getTemplateRoundConfigs,
   sanitizePicksForTemplate,
@@ -21,9 +22,11 @@ type AvailabilityByGameId = Record<string, ReturnType<typeof getAvailableTeamsFo
 function buildAvailability({
   bracketType,
   picksByGameId,
+  teamLabelOverridesByKey,
 }: {
   bracketType: BracketType;
   picksByGameId: PicksByGameId;
+  teamLabelOverridesByKey?: Record<string, string>;
 }): {
   sanitizedPicks: PicksByGameId;
   availableTeamsByGameId: AvailabilityByGameId;
@@ -37,6 +40,7 @@ function buildAvailability({
       bracketType,
       gameId,
       picksByGameId: progressivePicks,
+      teamLabelOverridesByKey,
     });
 
     availableTeamsByGameId[gameId] = availableTeams;
@@ -73,12 +77,14 @@ export function BracketEditor({
   initialPicksByGameId,
   fieldErrors,
   initialScoresByTeamKey,
+  teamLabelOverridesByKey,
 }: {
   mode: BracketEditorMode;
   bracketType: BracketType;
   initialPicksByGameId: PicksByGameId;
   fieldErrors?: Record<string, string[]>;
   initialScoresByTeamKey?: Record<string, number>;
+  teamLabelOverridesByKey?: Record<string, string>;
 }) {
   const isEditMode = mode === "edit";
 
@@ -98,8 +104,9 @@ export function BracketEditor({
       buildAvailability({
         bracketType,
         picksByGameId,
+        teamLabelOverridesByKey,
       }),
-    [bracketType, picksByGameId],
+    [bracketType, picksByGameId, teamLabelOverridesByKey],
   );
 
   const rounds = getTemplateRoundConfigs(bracketType);
@@ -152,6 +159,9 @@ export function BracketEditor({
               const game = getCanonicalGame(gameId);
               const availableTeams = availableTeamsByGameId[gameId] ?? [];
               const selectedWinnerTeamKey = sanitizedPicks[gameId]?.winnerTeamKey;
+              const selectedWinnerLabel = selectedWinnerTeamKey
+                ? getTeamLabel(selectedWinnerTeamKey, teamLabelOverridesByKey)
+                : null;
               const pickFieldKey = `pick.${gameId}`;
               const pickError = fieldErrors?.[pickFieldKey]?.[0];
 
@@ -210,7 +220,7 @@ export function BracketEditor({
 
                   {mode === "view" ? (
                     <p className="mt-2 text-xs text-slate-600">
-                      Winner: {selectedWinnerTeamKey ?? "Not selected"}
+                      Winner: {selectedWinnerLabel ?? "Not selected"}
                     </p>
                   ) : null}
 

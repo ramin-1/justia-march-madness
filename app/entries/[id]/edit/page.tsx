@@ -4,6 +4,7 @@ import { EntryForm } from "@/components/entry-form";
 import { PageShell } from "@/components/page-shell";
 import { buildEntryName } from "@/lib/entries/validation";
 import { normalizeEntryPicksJson, normalizeEntryTiebreakerJson } from "@/lib/brackets/serialization";
+import { getTeamLabelOverridesByKey } from "@/lib/brackets/team-labels";
 import { prisma } from "@/lib/prisma";
 
 export default async function EditEntryPage({
@@ -32,6 +33,7 @@ export default async function EditEntryPage({
   const normalizedTiebreakerJson = normalizeEntryTiebreakerJson(entry.tiebreakerJson);
   const defaultScoresByTeamKey =
     normalizedTiebreakerJson?.championship.predictedScoresByTeamKey ?? {};
+  const teamLabelOverridesByKey = await getTeamLabelOverridesByKey();
 
   return (
     <PageShell
@@ -46,6 +48,7 @@ export default async function EditEntryPage({
         defaultBracketType={entry.bracketType}
         defaultPicksByGameId={normalizedPicksJson.picksByGameId}
         defaultScoresByTeamKey={defaultScoresByTeamKey}
+        teamLabelOverridesByKey={teamLabelOverridesByKey}
       />
     </PageShell>
   );
