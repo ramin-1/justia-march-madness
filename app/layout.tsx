@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import Link from "next/link";
 import { AdminSessionControl } from "@/components/admin-session-control";
 import { SiteNav } from "@/components/site-nav";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "March Madness Company Challenge",
   description: "Company bracket challenge tracker",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -19,9 +23,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Link href="/leaderboard" className="text-base font-semibold text-slate-950 sm:text-lg">
                 March Madness Company Challenge
               </Link>
-              <p className="text-xs text-slate-500">
-                Milestone 8: polish and deployment-ready workflows
-              </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 lg:justify-end">
               <SiteNav />

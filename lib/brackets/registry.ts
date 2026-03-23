@@ -82,26 +82,24 @@ type RegionTopology = {
   elite8Game: CanonicalGameConfig;
 };
 
-type PlayInQualifierSeed = "16" | "11";
-
 function createRegionTopology({
   region,
-  playInGameId,
-  playInQualifierSeed,
+  playIn16GameId,
+  playIn11GameId,
 }: {
   region: RegionKey;
-  playInGameId: string;
-  playInQualifierSeed: PlayInQualifierSeed;
+  playIn16GameId?: string;
+  playIn11GameId?: string;
 }): RegionTopology {
   const round1Game1: CanonicalGameConfig =
-    playInQualifierSeed === "16"
+    playIn16GameId
       ? {
           id: `${region}_R1_G1`,
           round: "round1",
           region: REGION_LABELS[region],
           slotLabel: `${REGION_LABELS[region]} First Round - Game 1`,
           fixedTeams: [seededTeam(region, "1")],
-          sourceGameIds: [playInGameId],
+          sourceGameIds: [playIn16GameId],
         }
       : {
           id: `${region}_R1_G1`,
@@ -112,14 +110,14 @@ function createRegionTopology({
         };
 
   const round1Game5: CanonicalGameConfig =
-    playInQualifierSeed === "11"
+    playIn11GameId
       ? {
           id: `${region}_R1_G5`,
           round: "round1",
           region: REGION_LABELS[region],
           slotLabel: `${REGION_LABELS[region]} First Round - Game 5`,
           fixedTeams: [seededTeam(region, "6")],
-          sourceGameIds: [playInGameId],
+          sourceGameIds: [playIn11GameId],
         }
       : {
           id: `${region}_R1_G5`,
@@ -246,9 +244,9 @@ const PLAY_IN_GAMES: CanonicalGameConfig[] = [
   {
     id: "PLAYIN_G1",
     round: "playIn",
-    region: REGION_LABELS.EAST,
-    slotLabel: "Play-In 1 (East 16-seed qualifier)",
-    initialTeams: [seededTeam("EAST", "16A"), seededTeam("EAST", "16B")],
+    region: REGION_LABELS.MIDWEST,
+    slotLabel: "Play-In 1 (Midwest 16-seed qualifier)",
+    initialTeams: [seededTeam("MIDWEST", "16A"), seededTeam("MIDWEST", "16B")],
   },
   {
     id: "PLAYIN_G2",
@@ -276,23 +274,19 @@ const PLAY_IN_GAMES: CanonicalGameConfig[] = [
 const REGION_TOPOLOGY = {
   EAST: createRegionTopology({
     region: "EAST",
-    playInGameId: "PLAYIN_G1",
-    playInQualifierSeed: "16",
   }),
   WEST: createRegionTopology({
     region: "WEST",
-    playInGameId: "PLAYIN_G2",
-    playInQualifierSeed: "11",
+    playIn11GameId: "PLAYIN_G2",
   }),
   SOUTH: createRegionTopology({
     region: "SOUTH",
-    playInGameId: "PLAYIN_G3",
-    playInQualifierSeed: "16",
+    playIn16GameId: "PLAYIN_G3",
   }),
   MIDWEST: createRegionTopology({
     region: "MIDWEST",
-    playInGameId: "PLAYIN_G4",
-    playInQualifierSeed: "11",
+    playIn16GameId: "PLAYIN_G1",
+    playIn11GameId: "PLAYIN_G4",
   }),
 } as const;
 

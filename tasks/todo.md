@@ -553,3 +553,46 @@ Admin-triggered NCAA sync now performs bounded catch-up backfill from `2026-03-1
 
 ## Review
 Round-2 matching now uses participant names derived from already-known upstream winners during the same backfill run rather than depending only on previously persisted `homeTeam/awayTeam` values. This preserves deterministic matching and existing working behavior while allowing March 21/22 second-round games to resolve when their participants can be inferred from synchronized round-1 winners.
+
+---
+
+# Task: First Four Canonical Topology Correction (Midwest 16 Qualifier)
+
+## Plan
+- [x] Re-read required docs and inspect canonical play-in registry + hardcoded sync mapping.
+- [x] Identify exact mismatch between canonical play-in labels/feed topology and expected 2026 setup.
+- [x] Update registry play-in definitions so `PLAYIN_G1` is the Midwest 16-seed qualifier (Howard/UMBC).
+- [x] Remove nonexistent East 16 play-in dependency and keep downstream round-1 feeds correct.
+- [x] Ensure existing hardcoded First Four sync map remains aligned to canonical IDs.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update task and lessons tracking for this correction.
+
+## Progress Notes
+- 2026-03-23 11:07 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, and inspected `lib/brackets/registry.ts`, `lib/result-sync/matching.ts`, and related canonical play-in/feed definitions.
+- 2026-03-23 11:10 PDT - Confirmed root cause: `PLAYIN_G1` was incorrectly configured as `East 16-seed qualifier` and East region topology depended on it, while sync hardcoded `Howard vs UMBC -> PLAYIN_G1`, causing inconsistent canonical meaning.
+- 2026-03-23 11:14 PDT - Refactored region topology config to support independent optional play-in feeds for 16-seed and 11-seed slots (`playIn16GameId` and `playIn11GameId`) instead of one shared per-region qualifier.
+- 2026-03-23 11:15 PDT - Updated play-in metadata: `PLAYIN_G1` is now `Midwest 16-seed qualifier` with `MIDWEST_16A/B` team slots; East no longer has a play-in dependency.
+- 2026-03-23 11:16 PDT - Updated region feed wiring: West uses `PLAYIN_G2` for 11-seed, South uses `PLAYIN_G3` for 16-seed, Midwest uses `PLAYIN_G1` for 16-seed and `PLAYIN_G4` for 11-seed.
+- 2026-03-23 11:22 PDT - Verification passed: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Canonical First Four topology now matches the required 2026 setup: Howard/UMBC maps to the Midwest 16-seed qualifier (`PLAYIN_G1`), no bogus East 16-seed qualifier remains, hardcoded NCAA First Four mapping stays consistent, and downstream round-1 feed behavior remains deterministic and correct.
+
+---
+
+# Task: Branding Cleanup - Remove Subtitle + Justia Favicon
+
+## Plan
+- [x] Re-read required guidance and inspect current layout/favicon wiring.
+- [x] Remove the Milestone subtitle text from the shared header without changing layout behavior.
+- [x] Add the provided Justia favicon asset to the app and wire metadata to use it.
+- [x] Verify lint/typecheck still pass for the scoped branding change.
+
+## Progress Notes
+- 2026-03-23 01:20 PDT - Confirmed subtitle source in `app/layout.tsx` and found favicon asset was missing/empty.
+- 2026-03-23 01:28 PDT - Downloaded the provided Justia SVG asset into `app/icon.svg`.
+- 2026-03-23 01:29 PDT - Updated layout metadata icons to point at `/icon.svg`, removed the obsolete empty `app/favicon.ico`, and retained the rest of the header/nav structure.
+- 2026-03-23 01:31 PDT - Verification complete: `npm run typecheck` and `npm run lint`.
+
+## Review
+Scoped branding cleanup complete. The header no longer shows the Milestone subtitle and the app now uses the committed Justia icon asset via App Router metadata/file conventions with no product behavior changes.

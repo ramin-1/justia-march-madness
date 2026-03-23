@@ -105,3 +105,17 @@ YYYY-MM-DD
 **Pattern**: Assuming future-round participant names are always already persisted instead of deriving them from upstream winners in current run state.
 **Rule**: For deterministic bracket sync matching beyond round 1, derive candidate participants from current winner picks (`gamesById`) and canonical dependencies before attempting exact team-name matching.
 **Applied**: Added derived local candidate generation in sync service via `getAvailableTeamsForGame()` + current key-to-name mappings so second-round games can match during the same backfill run.
+
+## 2026-03-23 - Keep Canonical Play-In Slot Semantics Aligned With Hardcoded Sync IDs
+
+**Mistake**: Left `PLAYIN_G1` labeled/wired as East 16 qualifier while sync hardcoded `Howard vs UMBC -> PLAYIN_G1`, causing canonical topology mismatch.
+**Pattern**: Updating sync mapping independently from canonical bracket registry semantics.
+**Rule**: When a sync path hardcodes matchup-to-game IDs, canonical registry labels and downstream feed assignments for those IDs must stay in lockstep.
+**Applied**: Corrected play-in topology so `PLAYIN_G1` is Midwest 16 qualifier, removed East 16 play-in dependency, and kept First Four hardcoded map consistent with canonical IDs.
+
+## 2026-03-23 - Use Dedicated apply_patch Tool for File Patches
+
+**Mistake**: Attempted an `apply_patch` style edit through `exec_command`, which triggered tooling warnings.
+**Pattern**: Mixing shell patching and dedicated patch tooling in the same workflow.
+**Rule**: For patch-style file edits, always use the dedicated `apply_patch` tool directly rather than running patch payloads through shell execution.
+**Applied**: Switched subsequent file edits/deletes in this task to the `apply_patch` tool path only.
