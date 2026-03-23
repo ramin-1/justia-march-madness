@@ -9,7 +9,7 @@ import type { PicksByGameId } from "@/lib/brackets/types";
 import { prisma } from "@/lib/prisma";
 import { parseGameResultUpdateFormData } from "@/lib/results/validation";
 import { normalizeGameResultStatus } from "@/lib/results/status";
-import { syncNcaaResults } from "@/lib/result-sync/sync-service";
+import { syncNcaaResultsBackfill } from "@/lib/result-sync/sync-service";
 import { createGameResultsIndex, type GameResultRow } from "@/lib/scoring";
 import { recalculateEntryStandings, SCORE_GAME_RESULT_SELECT } from "@/lib/standings";
 
@@ -234,10 +234,10 @@ export async function updateGameResultAction(
 }
 
 export async function runNcaaSyncAction() {
-  let syncResult: Awaited<ReturnType<typeof syncNcaaResults>>;
+  let syncResult: Awaited<ReturnType<typeof syncNcaaResultsBackfill>>;
 
   try {
-    syncResult = await syncNcaaResults();
+    syncResult = await syncNcaaResultsBackfill();
   } catch (error) {
     console.error("NCAA sync failed from admin trigger:", error);
 
@@ -265,7 +265,7 @@ export async function runNcaaSyncAction() {
   redirect(
     buildAdminResultsPath({
       syncStatus: "success",
-      syncMessage: `Sync complete. Parsed ${syncResult.parsedGames} game(s), matched ${syncResult.matchedGames}, and updated ${syncResult.updatedGames}.`,
+      syncMessage: `Backfill sync complete for ${syncResult.datesProcessed} date(s) (${syncResult.startDate} to ${syncResult.targetDate}). Parsed ${syncResult.parsedGames}, matched ${syncResult.matchedGames}, updated ${syncResult.updatedGames}, unchanged ${syncResult.unchangedGames}.`,
     }),
   );
 }

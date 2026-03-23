@@ -506,3 +506,50 @@ Duplicate bracket creation for the same participant + bracket type is now blocke
 
 ## Review
 Milestone 8 implementation is complete and scoped to polish/deployment readiness. Core pages now handle small screens more reliably, bracket views are print-friendly, important loading/error/not-found and empty/sync-feedback states are intentional, and operational docs/env guidance are now practical for local setup and deployment. Existing milestone 1–7 behavior (multi-bracket architecture, scoring, admin flows, NCAA sync, and prior hardening fixes) remains intact.
+
+---
+
+# Task: Admin NCAA Sync Backfill Orchestration
+
+## Plan
+- [x] Re-read required docs and inspect current admin results action + NCAA sync pipeline/date handling.
+- [x] Keep existing single-date sync behavior intact and add date-targeted sync support in the sync layer.
+- [x] Add bounded sequential backfill orchestration (start date through effective target date) with aggregated totals.
+- [x] Wire `/admin/results` sync button to backfill wrapper while preserving redirect/revalidation UX.
+- [x] Keep failure behavior explicit when a date-specific backfill run fails.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update task review + lessons notes for this user-corrected bug.
+
+## Progress Notes
+- 2026-03-23 09:57 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `tasks/*`, workflow skill guidance, and inspected `app/admin/results/actions.ts`, `app/admin/results/page.tsx`, `lib/result-sync/ncaa.ts`, `lib/result-sync/sync-service.ts`, and `scripts/sync-results.ts`.
+- 2026-03-23 10:01 PDT - Confirmed root limitation: admin button action still called one-date `syncNcaaResults()` directly, so manual sync only processed a single effective date per click.
+- 2026-03-23 10:07 PDT - Added date-targeted fetch support in `lib/result-sync/ncaa.ts` (`targetDate` option) while preserving existing env-driven defaults for one-date sync behavior.
+- 2026-03-23 10:14 PDT - Added `syncNcaaResults(options)` + new `syncNcaaResultsBackfill()` in `lib/result-sync/sync-service.ts` with bounded range start `2026-03-17`, effective target-date resolution, sequential per-date execution, and aggregated totals.
+- 2026-03-23 10:16 PDT - Updated admin action to call `syncNcaaResultsBackfill()` and return concise aggregated success messaging while preserving existing error redirect and revalidation behavior.
+- 2026-03-23 10:17 PDT - Updated `/admin/results` NCAA sync helper copy to reflect backfill behavior through target date.
+- 2026-03-23 10:20 PDT - Verification passed: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Admin-triggered NCAA sync now performs bounded catch-up backfill from `2026-03-17` through the effective target date instead of only syncing one date. The existing single-date pipeline remains intact for other entrypoints, the parser/matcher/update logic is unchanged, and reruns remain idempotent because per-date sync continues to skip unchanged canonical game rows.
+
+---
+
+# Task: NCAA Backfill Round-2 Matching Derivation Fix
+
+## Plan
+- [x] Re-read required docs/files and confirm where matching candidates are built during sync runs.
+- [x] Identify why round-2 games fail to match during backfill despite earlier winners already being known in-run.
+- [x] Keep parser/matcher architecture intact and improve candidate building with derived participant names from current `gamesById` winner state.
+- [x] Preserve deterministic matching and existing successful behavior for First Four + round 1.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+- [x] Update task review + lessons notes for this correction.
+
+## Progress Notes
+- 2026-03-23 10:31 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, and inspected `lib/result-sync/matching.ts`, `lib/result-sync/sync-service.ts`, and `lib/brackets/registry.ts`.
+- 2026-03-23 10:34 PDT - Confirmed root cause: matching candidates were built from persisted `homeTeam/awayTeam` only, so round-2+ canonical games with null participant names could not exact-match even when upstream winners were already known in the same run.
+- 2026-03-23 10:40 PDT - Added derived matching candidate builder in `sync-service` that uses current completed picks + `getAvailableTeamsForGame()` + key-to-name mapping from already-known teams/winners in `gamesById`.
+- 2026-03-23 10:42 PDT - Switched sync loop to call matcher with derived local candidates, preserving existing matcher logic and fallback heuristics.
+- 2026-03-23 10:49 PDT - Verification passed: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Round-2 matching now uses participant names derived from already-known upstream winners during the same backfill run rather than depending only on previously persisted `homeTeam/awayTeam` values. This preserves deterministic matching and existing working behavior while allowing March 21/22 second-round games to resolve when their participants can be inferred from synchronized round-1 winners.

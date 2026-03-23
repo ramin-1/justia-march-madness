@@ -69,6 +69,10 @@ export type ParsedGamesResult = {
   debug: ParsedGamesDebugInfo;
 };
 
+export type NcaaScoresFetchOptions = {
+  targetDate?: string;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -713,20 +717,22 @@ function dedupeScrapedResults(games: ScrapedResult[]): ScrapedResult[] {
   return [...deduped.values()];
 }
 
-function getDateOverrideParts() {
-  const rawDate = process.env.NCAA_SCORES_DATE;
-
-  if (!rawDate) {
-    return null;
-  }
-
+function parseIsoDateParts(rawDate: string, sourceLabel: string) {
   const trimmedDate = rawDate.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedDate)) {
-    throw new Error("NCAA_SCORES_DATE must use YYYY-MM-DD format.");
+    throw new Error(`${sourceLabel} must use YYYY-MM-DD format.`);
   }
 
   const [year, month, day] = trimmedDate.split("-");
   return { year, month, day };
+}
+
+function getDateOverrideParts(rawDate = process.env.NCAA_SCORES_DATE, sourceLabel = "NCAA_SCORES_DATE") {
+  if (!rawDate) {
+    return null;
+  }
+
+  return parseIsoDateParts(rawDate, sourceLabel);
 }
 
 function getDatePartsForScoresUrl(date: Date) {
@@ -763,20 +769,27 @@ function getNcaaFetchTimeoutMs(): number {
   return Math.trunc(parsed);
 }
 
-export function buildNcaaScoresUrl(date: Date = new Date()): string {
+export function buildNcaaScoresUrl(date: Date = new Date(), options: NcaaScoresFetchOptions = {}): string {
   const baseUrl = process.env.NCAA_SCORES_BASE_URL ?? DEFAULT_NCAA_SCORES_BASE_URL;
-  return buildNcaaScoresUrlFromBase(baseUrl, date);
+  return buildNcaaScoresUrlFromBase(baseUrl, date, options);
 }
 
-function buildNcaaScoresUrlFromBase(baseUrl: string, date: Date = new Date()): string {
+function buildNcaaScoresUrlFromBase(
+  baseUrl: string,
+  date: Date = new Date(),
+  options: NcaaScoresFetchOptions = {},
+): string {
   const normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  const overrideDateParts = getDateOverrideParts();
+  const explicitTargetDateParts = options.targetDate
+    ? getDateOverrideParts(options.targetDate, "targetDate")
+    : null;
+  const overrideDateParts = explicitTargetDateParts ?? getDateOverrideParts();
   const { year, month, day } = overrideDateParts ?? getDatePartsForScoresUrl(date);
 
   return `${normalizedBaseUrl}${year}/${month}/${day}`;
 }
 
-export async function fetchNcaaScoresHtml(): Promise<{
+export async function fetchNcaaScoresHtml(options: NcaaScoresFetchOptions = {}): Promise<{
   html: string;
   sourceUrl: string;
   sourceMode: "override-url" | "override-base-url" | "date-builder";
@@ -785,11 +798,18 @@ export async function fetchNcaaScoresHtml(): Promise<{
   const isBaseScoresOverride = Boolean(
     overrideUrl && /\/march-madness-live\/scores\/?$/i.test(overrideUrl),
   );
+
+  if (options.targetDate && overrideUrl && !isBaseScoresOverride) {
+    throw new Error(
+      "Cannot run date-targeted sync while NCAA_SCORES_URL points to a fixed non-base URL.",
+    );
+  }
+
   const sourceUrl = overrideUrl
     ? isBaseScoresOverride
-      ? buildNcaaScoresUrlFromBase(overrideUrl)
+      ? buildNcaaScoresUrlFromBase(overrideUrl, new Date(), options)
       : overrideUrl
-    : buildNcaaScoresUrl();
+    : buildNcaaScoresUrl(new Date(), options);
   const sourceMode = overrideUrl ? (isBaseScoresOverride ? "override-base-url" : "override-url") : "date-builder";
   const fetchTimeoutMs = getNcaaFetchTimeoutMs();
   const controller = new AbortController();

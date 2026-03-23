@@ -91,3 +91,17 @@ YYYY-MM-DD
 **Pattern**: Coupling view-state styling/text to user picks without comparing canonical game outcome status + actual winner.
 **Rule**: In read-only bracket views, derive outcome styling and winner display from canonical final game results; treat picks as predictions that can be correct, incorrect, or pending.
 **Applied**: Added final-status-aware outcome comparison in `BracketEditor` view mode and changed `Winner:` to render only actual final winners from canonical `Game` data.
+
+## 2026-03-23 - Admin Sync Must Backfill, Not Only Single-Date
+
+**Mistake**: Wired the admin NCAA sync button directly to the single-date sync path, so each click only processed one effective date.
+**Pattern**: Reusing a low-level daily sync primitive for an admin catch-up workflow without adding orchestration.
+**Rule**: Keep the single-date sync pipeline as a reusable primitive, and add a separate orchestration layer for admin backfill/catch-up behavior.
+**Applied**: Added `syncNcaaResultsBackfill()` to run bounded sequential date syncs (`2026-03-17` through effective target date) and switched the admin button action to call that wrapper with aggregated messaging.
+
+## 2026-03-23 - Matching Must Use Derived Participants For Later Rounds
+
+**Mistake**: Built sync matcher candidates from persisted `homeTeam/awayTeam` only, which left round-2+ games unmatched when those fields were still null.
+**Pattern**: Assuming future-round participant names are always already persisted instead of deriving them from upstream winners in current run state.
+**Rule**: For deterministic bracket sync matching beyond round 1, derive candidate participants from current winner picks (`gamesById`) and canonical dependencies before attempting exact team-name matching.
+**Applied**: Added derived local candidate generation in sync service via `getAvailableTeamsForGame()` + current key-to-name mappings so second-round games can match during the same backfill run.

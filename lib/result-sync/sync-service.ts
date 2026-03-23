@@ -40,6 +40,58 @@ type CandidateUpdateData = {
   lastSyncedAt: Date;
 };
 
+const ADMIN_NCAA_BACKFILL_START_DATE = "2026-03-17";
+const NCAA_DEFAULT_TIMEZONE = "America/New_York";
+
+export type SyncNcaaResultsOptions = {
+  targetDate?: string;
+};
+
+export type SyncNcaaResult = {
+  requestedDate: string | null;
+  sourceUrl: string;
+  sourceMode: "override-url" | "override-base-url" | "date-builder";
+  parsedGames: number;
+  parserPath: "json" | "html-fallback" | "none";
+  jsonBlocksFound: number;
+  jsonCandidates: number;
+  htmlFallbackCandidates: number;
+  htmlFallbackParsedCandidates: number;
+  normalizedParsedGames: number;
+  parsedGamesWithRegion: number;
+  parsedGamesMissingRegion: number;
+  parsedRegionSamples: Array<{ matchup: string; regionLabel: string | null }>;
+  matchedGames: number;
+  updatedGames: number;
+  unchangedGames: number;
+  unmatchedGames: number;
+  ambiguousGames: number;
+  skippedGames: number;
+};
+
+export type SyncNcaaBackfillResult = {
+  startDate: string;
+  targetDate: string;
+  datesProcessed: number;
+  dateResults: Array<{
+    date: string;
+    parsedGames: number;
+    matchedGames: number;
+    updatedGames: number;
+    unchangedGames: number;
+    unmatchedGames: number;
+    ambiguousGames: number;
+    skippedGames: number;
+  }>;
+  parsedGames: number;
+  matchedGames: number;
+  updatedGames: number;
+  unchangedGames: number;
+  unmatchedGames: number;
+  ambiguousGames: number;
+  skippedGames: number;
+};
+
 function getRoundSortOrder(roundLabel: string | undefined): number {
   if (!roundLabel) {
     return 999;
@@ -101,6 +153,54 @@ function buildCompletedPicksByGameId(gamesById: Map<string, LocalGameRow>): Pick
   }
 
   return picksByGameId;
+}
+
+function buildTeamNameByKey(gamesById: Map<string, LocalGameRow>): Map<string, string> {
+  const teamNameByKey = new Map<string, string>();
+
+  for (const game of gamesById.values()) {
+    if (game.homeTeamKey && game.homeTeam) {
+      teamNameByKey.set(game.homeTeamKey, game.homeTeam);
+    }
+
+    if (game.awayTeamKey && game.awayTeam) {
+      teamNameByKey.set(game.awayTeamKey, game.awayTeam);
+    }
+
+    if (game.winnerTeamKey && game.winnerTeam) {
+      teamNameByKey.set(game.winnerTeamKey, game.winnerTeam);
+    }
+  }
+
+  return teamNameByKey;
+}
+
+function buildLocalGamesForMatching(gamesById: Map<string, LocalGameRow>): LocalGameForMatching[] {
+  const picksByGameId = buildCompletedPicksByGameId(gamesById);
+  const teamNameByKey = buildTeamNameByKey(gamesById);
+
+  return [...gamesById.values()].map((game) => {
+    const availableTeams = getAvailableTeamsForGame({
+      bracketType: "MAIN",
+      gameId: game.id,
+      picksByGameId,
+    });
+
+    const derivedHomeTeam = availableTeams[0]?.key
+      ? teamNameByKey.get(availableTeams[0].key) ?? null
+      : null;
+    const derivedAwayTeam = availableTeams[1]?.key
+      ? teamNameByKey.get(availableTeams[1].key) ?? null
+      : null;
+
+    return {
+      id: game.id,
+      round: game.round,
+      region: game.region,
+      homeTeam: game.homeTeam ?? derivedHomeTeam,
+      awayTeam: game.awayTeam ?? derivedAwayTeam,
+    };
+  });
 }
 
 function deriveParticipantTeamKeys({
@@ -300,7 +400,88 @@ function hasNoEffectiveChange(currentGame: LocalGameRow, nextData: CandidateUpda
   );
 }
 
-export async function syncNcaaResults() {
+function parseIsoDate(value: string, label: string): Date {
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    throw new Error(`${label} must use YYYY-MM-DD format.`);
+  }
+
+  const [yearPart, monthPart, dayPart] = trimmed.split("-");
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+  const day = Number(dayPart);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error(`${label} must be a valid calendar date.`);
+  }
+
+  return parsed;
+}
+
+function formatIsoDate(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getCurrentIsoDateInNcaaTimezone(now: Date = new Date()): string {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: process.env.NCAA_SCORES_TIMEZONE ?? NCAA_DEFAULT_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(now);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    throw new Error("Unable to determine NCAA sync target date.");
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function buildInclusiveDateRange(startDate: string, endDate: string): string[] {
+  const start = parseIsoDate(startDate, "Backfill start date");
+  const end = parseIsoDate(endDate, "Backfill target date");
+
+  if (start.getTime() > end.getTime()) {
+    throw new Error(`Backfill start date ${startDate} cannot be after target date ${endDate}.`);
+  }
+
+  const dates: string[] = [];
+  for (let cursor = start; cursor.getTime() <= end.getTime(); ) {
+    dates.push(formatIsoDate(cursor));
+    cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), cursor.getUTCDate() + 1));
+  }
+
+  return dates;
+}
+
+function getEffectiveBackfillTargetDate(explicitTargetDate?: string): string {
+  if (explicitTargetDate) {
+    return formatIsoDate(parseIsoDate(explicitTargetDate, "Backfill target date"));
+  }
+
+  const configuredDate = process.env.NCAA_SCORES_DATE?.trim();
+  if (configuredDate) {
+    return formatIsoDate(parseIsoDate(configuredDate, "NCAA_SCORES_DATE"));
+  }
+
+  return getCurrentIsoDateInNcaaTimezone();
+}
+
+export async function syncNcaaResults(options: SyncNcaaResultsOptions = {}): Promise<SyncNcaaResult> {
+  const requestedDate = options.targetDate?.trim() || null;
   const startedAt = new Date();
 
   const syncRun = await prisma.syncRun.create({
@@ -313,7 +494,9 @@ export async function syncNcaaResults() {
   });
 
   try {
-    const { html, sourceUrl, sourceMode } = await fetchNcaaScoresHtml();
+    const { html, sourceUrl, sourceMode } = await fetchNcaaScoresHtml({
+      targetDate: requestedDate ?? undefined,
+    });
     const parsedGamesResult = parseCompletedGamesWithDebug(html);
     const scrapedGames = parsedGamesResult.games;
     const parsedGamesWithRegion = scrapedGames.filter((game) => Boolean(game.regionLabel)).length;
@@ -367,13 +550,7 @@ export async function syncNcaaResults() {
     const ambiguousDetails: string[] = [];
 
     for (const scrapedGame of orderedScrapedGames) {
-      const localGamesForMatching: LocalGameForMatching[] = [...gamesById.values()].map((game) => ({
-        id: game.id,
-        round: game.round,
-        region: game.region,
-        homeTeam: game.homeTeam,
-        awayTeam: game.awayTeam,
-      }));
+      const localGamesForMatching = buildLocalGamesForMatching(gamesById);
       const canonicalMatch = findCanonicalGameMatch({
         scrapedGame,
         localGames: localGamesForMatching,
@@ -469,6 +646,7 @@ export async function syncNcaaResults() {
         status: "success",
         finishedAt: new Date(),
         summaryJson: {
+          requestedDate,
           sourceUrl,
           sourceMode,
           parsedGames: scrapedGames.length,
@@ -494,6 +672,7 @@ export async function syncNcaaResults() {
     });
 
     return {
+      requestedDate,
       sourceUrl,
       sourceMode,
       parsedGames: scrapedGames.length,
@@ -527,4 +706,69 @@ export async function syncNcaaResults() {
 
     throw error;
   }
+}
+
+export async function syncNcaaResultsBackfill(options?: {
+  startDate?: string;
+  targetDate?: string;
+}): Promise<SyncNcaaBackfillResult> {
+  const startDate = options?.startDate ?? ADMIN_NCAA_BACKFILL_START_DATE;
+  const targetDate = getEffectiveBackfillTargetDate(options?.targetDate);
+  const datesToSync = buildInclusiveDateRange(startDate, targetDate);
+  const dateResults: SyncNcaaBackfillResult["dateResults"] = [];
+
+  let parsedGames = 0;
+  let matchedGames = 0;
+  let updatedGames = 0;
+  let unchangedGames = 0;
+  let unmatchedGames = 0;
+  let ambiguousGames = 0;
+  let skippedGames = 0;
+
+  for (const syncDate of datesToSync) {
+    let result: SyncNcaaResult;
+
+    try {
+      result = await syncNcaaResults({ targetDate: syncDate });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : "Unknown NCAA sync error";
+      throw new Error(`Backfill failed for ${syncDate}: ${errorMessage}`);
+    }
+
+    dateResults.push({
+      date: syncDate,
+      parsedGames: result.parsedGames,
+      matchedGames: result.matchedGames,
+      updatedGames: result.updatedGames,
+      unchangedGames: result.unchangedGames,
+      unmatchedGames: result.unmatchedGames,
+      ambiguousGames: result.ambiguousGames,
+      skippedGames: result.skippedGames,
+    });
+
+    parsedGames += result.parsedGames;
+    matchedGames += result.matchedGames;
+    updatedGames += result.updatedGames;
+    unchangedGames += result.unchangedGames;
+    unmatchedGames += result.unmatchedGames;
+    ambiguousGames += result.ambiguousGames;
+    skippedGames += result.skippedGames;
+  }
+
+  return {
+    startDate,
+    targetDate,
+    datesProcessed: datesToSync.length,
+    dateResults,
+    parsedGames,
+    matchedGames,
+    updatedGames,
+    unchangedGames,
+    unmatchedGames,
+    ambiguousGames,
+    skippedGames,
+  };
 }
