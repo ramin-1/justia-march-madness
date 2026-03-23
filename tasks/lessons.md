@@ -119,3 +119,17 @@ YYYY-MM-DD
 **Pattern**: Mixing shell patching and dedicated patch tooling in the same workflow.
 **Rule**: For patch-style file edits, always use the dedicated `apply_patch` tool directly rather than running patch payloads through shell execution.
 **Applied**: Switched subsequent file edits/deletes in this task to the `apply_patch` tool path only.
+
+## 2026-03-23 - Navigation Should Reflect Auth State, Not Only Route Protection
+
+**Mistake**: Left admin navigation links visible to logged-out users even though route protection existed in proxy/auth.
+**Pattern**: Treating access control and navigation visibility as the same concern and implementing only the protection layer.
+**Rule**: Whenever routes are role-protected, make nav visibility session-aware so users only see destinations appropriate to their auth state.
+**Applied**: Updated `SiteNav` to read `auth()` server-side and render `Admin Login` when logged out vs full admin links when logged in.
+
+## 2026-03-23 - Remove Scaffold Messaging From Production-Facing Auth Pages
+
+**Mistake**: Kept `/login` wrapped in a generic scaffold component that injected a yellow “Scaffold Route” banner after milestone completion.
+**Pattern**: Reusing scaffolding wrappers on finalized user-facing routes without re-evaluating whether placeholder messaging still belongs.
+**Rule**: Once a route is production-usable, render with standard page shell/components and remove scaffold-only callouts unless explicitly needed.
+**Applied**: Switched `/login` from `ScaffoldPage` to `PageShell`, preserving form/auth behavior while removing the scaffold banner.

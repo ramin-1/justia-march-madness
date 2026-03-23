@@ -596,3 +596,41 @@ Canonical First Four topology now matches the required 2026 setup: Howard/UMBC m
 
 ## Review
 Scoped branding cleanup complete. The header no longer shows the Milestone subtitle and the app now uses the committed Justia icon asset via App Router metadata/file conventions with no product behavior changes.
+
+---
+
+# Task: Nav Visibility UX - Hide Admin Links for Logged-Out Users
+
+## Plan
+- [x] Re-read required files and confirm the nav currently renders admin links unconditionally.
+- [x] Update nav rendering to use the existing auth session source of truth.
+- [x] Show only public links + Admin Login when logged out.
+- [x] Show full admin link set only when logged in as admin.
+- [x] Keep route protection/proxy behavior unchanged.
+- [x] Verify with `npm run typecheck` and `npm run lint`.
+
+## Progress Notes
+- 2026-03-23 01:36 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `tasks/*`, and inspected `components/site-nav.tsx`, `app/layout.tsx`, `auth.ts`, `components/admin-session-control.tsx`, and `proxy.ts`.
+- 2026-03-23 01:37 PDT - Confirmed root cause: `SiteNav` uses a static `navSections` constant containing all admin links and does not check session state.
+- 2026-03-23 01:40 PDT - Updated `components/site-nav.tsx` to use `auth()` and render admin links conditionally: logged-out users get only `Admin Login`; logged-in admins get entries/results/team-slot links.
+- 2026-03-23 01:43 PDT - Verification complete: `npm run typecheck` and `npm run lint`.
+
+## Review
+Nav visibility UX bug fixed with a narrow server-component change in `SiteNav`. Logged-out users now only see public links plus `Admin Login`, logged-in admins still see full admin nav, and existing proxy route protection remains unchanged.
+
+---
+
+# Task: Admin Login UI Cleanup - Remove Scaffold Banner
+
+## Plan
+- [x] Re-read required files and confirm where the yellow scaffold banner is injected on `/login`.
+- [x] Remove the scaffold banner from the login page while keeping the form/layout intact.
+- [x] Verify with `npm run typecheck` and `npm run lint`.
+
+## Progress Notes
+- 2026-03-23 01:48 PDT - Inspected `app/login/page.tsx`, `components/admin-login-form.tsx`, and `components/scaffold-page.tsx`; confirmed `/login` uses `ScaffoldPage`, which always renders the yellow “Scaffold Route” info box.
+- 2026-03-23 01:49 PDT - Updated `/login` to use `PageShell` directly with the same title/description and existing `AdminLoginForm`, removing only the scaffold banner UI.
+- 2026-03-23 01:50 PDT - Verification complete: `npm run typecheck` and `npm run lint`.
+
+## Review
+Scoped UI-only cleanup complete. The login form and auth flow remain unchanged, and the yellow scaffold/info banner is no longer rendered on `/login`.

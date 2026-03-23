@@ -1,25 +1,32 @@
 import Link from "next/link";
+import { auth } from "@/auth";
 
-const navSections = [
-  {
-    label: "Public",
-    links: [
-      { href: "/leaderboard", label: "Leaderboard" },
-    ],
-  },
-  {
-    label: "Admin (Protected)",
-    links: [
-      { href: "/login", label: "Admin Login" },
-      { href: "/entries", label: "Admin Entries" },
-      { href: "/entries/new", label: "Admin New Entry" },
-      { href: "/admin/results", label: "Admin Results" },
-      { href: "/admin/team-slots", label: "Admin Team Slots" },
-    ],
-  },
+const publicLinks = [{ href: "/leaderboard", label: "Leaderboard" }];
+
+const adminLoggedInLinks = [
+  { href: "/entries", label: "Admin Entries" },
+  { href: "/entries/new", label: "Admin New Entry" },
+  { href: "/admin/results", label: "Admin Results" },
+  { href: "/admin/team-slots", label: "Admin Team Slots" },
 ];
 
-export function SiteNav() {
+const adminLoggedOutLinks = [{ href: "/login", label: "Admin Login" }];
+
+export async function SiteNav() {
+  const session = await auth();
+  const isAdminLoggedIn = Boolean(session?.user);
+  const adminLinks = isAdminLoggedIn ? adminLoggedInLinks : adminLoggedOutLinks;
+  const navSections = [
+    {
+      label: "Public",
+      links: publicLinks,
+    },
+    {
+      label: "Admin (Protected)",
+      links: adminLinks,
+    },
+  ];
+
   return (
     <nav className="flex w-full flex-col gap-2 text-sm sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
       {navSections.map((section) => (

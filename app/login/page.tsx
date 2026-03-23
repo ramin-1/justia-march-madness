@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AdminLoginForm } from "@/components/admin-login-form";
-import { ScaffoldPage } from "@/components/scaffold-page";
+import { PageShell } from "@/components/page-shell";
 import { getAdminUsername, getSafeAdminRedirectPath } from "@/lib/auth/config";
 
 type LoginPageProps = {
@@ -19,15 +19,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <ScaffoldPage
+    <PageShell
       title="Admin Login"
       description="Credentials-based admin login for protected routes."
-      surface="auth"
     >
       <AdminLoginForm
         defaultUsername={getAdminUsername()}
         callbackUrl={safeNextPath}
       />
-    </ScaffoldPage>
+    </PageShell>
   );
 }
