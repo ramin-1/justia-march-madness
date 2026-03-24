@@ -573,6 +573,15 @@ export function getAvailableTeamsForGame({
   }
 
   if (missingTemplateSourceWinner) {
+    const partiallyResolvedTeams = dedupeTeamOptions([
+      ...(game.fixedTeams ?? []),
+      ...sourceWinnerTeams,
+    ]);
+
+    if (partiallyResolvedTeams.length > 0) {
+      return withResolvedTeamLabels(partiallyResolvedTeams, teamLabelOverridesByKey);
+    }
+
     if (template.dependencyMode === "allow-initial-fallback") {
       return withResolvedTeamLabels(
         dedupeTeamOptions([...(game.fixedTeams ?? []), ...(game.initialTeams ?? [])]),

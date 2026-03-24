@@ -20,6 +20,18 @@ type EntryFormAction = (
   formData: FormData,
 ) => Promise<EntryFormState>;
 
+function normalizeBracketType(
+  value: string | undefined,
+): BracketType | null {
+  if (!value) {
+    return null;
+  }
+
+  return BRACKET_TYPES.includes(value as BracketType)
+    ? (value as BracketType)
+    : null;
+}
+
 export function EntryForm({
   mode,
   submitAction,
@@ -46,18 +58,35 @@ export function EntryForm({
     INITIAL_ENTRY_FORM_STATE,
   );
 
-  const [selectedBracketType, setSelectedBracketType] = useState<BracketType>(
-    defaultBracketType,
+  const [draftBracketType, setDraftBracketType] = useState<BracketType | null>(
+    null,
   );
+  const preservedBracketType = normalizeBracketType(state.values?.bracketType);
+  const effectiveBracketType =
+    draftBracketType ?? preservedBracketType ?? defaultBracketType;
 
   const submitLabel = mode === "create" ? "Create Entry" : "Save Changes";
   const participantNameError = state.fieldErrors?.participantName?.[0];
   const bracketTypeError = state.fieldErrors?.bracketType?.[0];
   const isCreateMode = mode === "create";
+  const participantNameDefaultValue = state.values?.participantName ?? defaultParticipantName;
 
   const editorInitialPicks = useMemo(
-    () => (isCreateMode ? {} : defaultPicksByGameId),
-    [defaultPicksByGameId, isCreateMode],
+    () => (
+      state.values &&
+      normalizeBracketType(
+        state.values.bracketType,
+      ) === effectiveBracketType
+        ? state.values.picksByGameId
+        : isCreateMode
+          ? {}
+          : defaultPicksByGameId
+    ),
+    [defaultPicksByGameId, effectiveBracketType, isCreateMode, state.values],
+  );
+  const editorStateKey = useMemo(
+    () => `${effectiveBracketType}-${mode}-${JSON.stringify(editorInitialPicks)}`,
+    [editorInitialPicks, effectiveBracketType, mode],
   );
 
   const editorInitialScores = useMemo(
@@ -68,6 +97,7 @@ export function EntryForm({
   return (
     <form action={formAction} className="space-y-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6">
       {entryId ? <input type="hidden" name="id" value={entryId} /> : null}
+      {!isCreateMode ? <input type="hidden" name="bracketType" value={effectiveBracketType} /> : null}
 
       <div className="grid gap-5 md:grid-cols-2">
         <div>
@@ -75,10 +105,11 @@ export function EntryForm({
             Participant name
           </label>
           <input
+            key={`participant-${participantNameDefaultValue}`}
             id="participant-name"
             name="participantName"
             className="w-full rounded-md border border-slate-300 px-3 py-2"
-            defaultValue={defaultParticipantName}
+            defaultValue={participantNameDefaultValue}
             required
             aria-invalid={participantNameError ? "true" : "false"}
             aria-describedby={participantNameError ? "participant-name-error" : undefined}
@@ -100,8 +131,15 @@ export function EntryForm({
               id="bracket-type"
               name="bracketType"
               className="w-full rounded-md border border-slate-300 px-3 py-2"
-              value={selectedBracketType}
-              onChange={(event) => setSelectedBracketType(event.target.value as BracketType)}
+              value={effectiveBracketType}
+              onChange={(event) => {
+                const nextBracketType = normalizeBracketType(event.target.value);
+                if (!nextBracketType) {
+                  return;
+                }
+
+                setDraftBracketType(nextBracketType);
+              }}
               aria-invalid={bracketTypeError ? "true" : "false"}
               aria-describedby={bracketTypeError ? "bracket-type-error" : undefined}
             >
@@ -113,9 +151,8 @@ export function EntryForm({
             </select>
           ) : (
             <>
-              <input type="hidden" name="bracketType" value={selectedBracketType} />
               <div className="rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
-                {BRACKET_TYPE_LABELS[selectedBracketType]}
+                {BRACKET_TYPE_LABELS[effectiveBracketType]}
               </div>
             </>
           )}
@@ -133,9 +170,9 @@ export function EntryForm({
       </div>
 
       <BracketEditor
-        key={`${selectedBracketType}-${mode}`}
+        key={editorStateKey}
         mode="edit"
-        bracketType={selectedBracketType}
+        bracketType={effectiveBracketType}
         initialPicksByGameId={editorInitialPicks}
         initialScoresByTeamKey={editorInitialScores}
         fieldErrors={state.fieldErrors}

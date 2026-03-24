@@ -3,11 +3,13 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { EntryFormState } from "@/app/entries/action-state";
-import type { BracketType } from "@/lib/brackets/types";
+import type { EntryFormState, EntryFormValues } from "@/app/entries/action-state";
+import { getTemplateGameIds } from "@/lib/brackets/registry";
+import type { BracketType, PicksByGameId } from "@/lib/brackets/types";
 import { getFinalWinnerTeamKeyByGameId } from "@/lib/brackets/team-labels";
 import { prisma } from "@/lib/prisma";
 import {
+  bracketTypeSchema,
   buildEntryName,
   entryIdSchema,
   entrySearchSchema,
@@ -79,12 +81,43 @@ function isPrismaParticipantBracketTypeUniqueError(error: unknown) {
 function buildDuplicateEntryFormState(options: {
   participantName: string;
   bracketType: BracketType;
+  values?: EntryFormValues;
 }): EntryFormState {
   return {
     message: `${options.participantName} already has a ${getBracketTypeLabel(options.bracketType)}. Each participant can only have one entry per bracket type.`,
     fieldErrors: {
       participantName: ["This participant already has this bracket type."],
     },
+    values: options.values,
+  };
+}
+
+function getSubmittedEntryFormValues(
+  formData: FormData,
+  fallbackBracketType: BracketType = "MAIN",
+): EntryFormValues {
+  const parsedBracketType = bracketTypeSchema.safeParse(
+    getFormStringValue(formData, "bracketType"),
+  );
+  const bracketType = parsedBracketType.success
+    ? parsedBracketType.data
+    : fallbackBracketType;
+
+  const picksByGameId: PicksByGameId = {};
+
+  for (const gameId of getTemplateGameIds(bracketType)) {
+    const selectedWinnerTeamKey = getFormStringValue(formData, `pick.${gameId}`).trim();
+    if (!selectedWinnerTeamKey) {
+      continue;
+    }
+
+    picksByGameId[gameId] = { winnerTeamKey: selectedWinnerTeamKey };
+  }
+
+  return {
+    participantName: getFormStringValue(formData, "participantName"),
+    bracketType,
+    picksByGameId,
   };
 }
 
@@ -124,9 +157,13 @@ function revalidateEntryPaths(entryId?: string) {
 }
 
 export async function createEntryAction(
-  _previousState: EntryFormState,
+  previousState: EntryFormState,
   formData: FormData,
 ): Promise<EntryFormState> {
+  const submittedValues = getSubmittedEntryFormValues(
+    formData,
+    previousState.values?.bracketType ?? "MAIN",
+  );
   const sourceWinnerTeamKeyByGameId = await getFinalWinnerTeamKeyByGameId();
   const parsedFormData = parseEntryFormData(formData, {
     sourceWinnerTeamKeyByGameId,
@@ -136,6 +173,7 @@ export async function createEntryAction(
     return {
       message: parsedFormData.message,
       fieldErrors: parsedFormData.fieldErrors,
+      values: submittedValues,
     };
   }
 
@@ -148,6 +186,7 @@ export async function createEntryAction(
     return buildDuplicateEntryFormState({
       participantName: parsedFormData.data.participantName,
       bracketType: parsedFormData.data.bracketType,
+      values: submittedValues,
     });
   }
 
@@ -180,11 +219,13 @@ export async function createEntryAction(
       return buildDuplicateEntryFormState({
         participantName: parsedFormData.data.participantName,
         bracketType: parsedFormData.data.bracketType,
+        values: submittedValues,
       });
     }
 
     return {
       message: "Unable to create the entry right now. Please try again.",
+      values: submittedValues,
     };
   }
 
@@ -198,14 +239,19 @@ export async function createEntryAction(
 }
 
 export async function updateEntryAction(
-  _previousState: EntryFormState,
+  previousState: EntryFormState,
   formData: FormData,
 ): Promise<EntryFormState> {
+  const submittedValues = getSubmittedEntryFormValues(
+    formData,
+    previousState.values?.bracketType ?? "MAIN",
+  );
   const parsedEntryId = entryIdSchema.safeParse(getFormStringValue(formData, "id"));
 
   if (!parsedEntryId.success) {
     return {
       message: "Unable to update entry because the entry id is invalid.",
+      values: submittedValues,
     };
   }
 
@@ -217,6 +263,7 @@ export async function updateEntryAction(
   if (!existingEntry) {
     return {
       message: "That entry no longer exists.",
+      values: submittedValues,
     };
   }
 
@@ -229,6 +276,7 @@ export async function updateEntryAction(
     return {
       message: parsedFormData.message,
       fieldErrors: parsedFormData.fieldErrors,
+      values: submittedValues,
     };
   }
 
@@ -242,6 +290,7 @@ export async function updateEntryAction(
     return buildDuplicateEntryFormState({
       participantName: parsedFormData.data.participantName,
       bracketType: parsedFormData.data.bracketType,
+      values: submittedValues,
     });
   }
 
@@ -274,6 +323,7 @@ export async function updateEntryAction(
     if (isPrismaRecordNotFoundError(error)) {
       return {
         message: "That entry no longer exists.",
+        values: submittedValues,
       };
     }
 
@@ -281,11 +331,13 @@ export async function updateEntryAction(
       return buildDuplicateEntryFormState({
         participantName: parsedFormData.data.participantName,
         bracketType: parsedFormData.data.bracketType,
+        values: submittedValues,
       });
     }
 
     return {
       message: "Unable to update the entry right now. Please try again.",
+      values: submittedValues,
     };
   }
 

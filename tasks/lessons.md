@@ -238,3 +238,52 @@ YYYY-MM-DD
 **Pattern**: Treating template boundaries as data boundaries and ignoring canonical winners from source games outside the active bracket template.
 **Rule**: For multi-template brackets, downstream participant resolution must support canonical final winners for source games outside the active template, while still requiring user picks for in-template dependencies.
 **Applied**: Added optional `sourceWinnerTeamKeyByGameId` support to availability/sanitization + server validation and wired it through create/edit/view flows.
+
+## 2026-03-24 - Server-Action Validation Errors Must Return Rehydration Values
+
+**Mistake**: Returned only `message` and `fieldErrors` from failed entry server actions, which left client forms without the submitted participant/pick values after action rerender/reset.
+**Pattern**: Treating validation errors as purely messaging concerns and not as full form-state restoration events.
+**Rule**: For mutation forms with many fields, failed server-action responses must include submitted values (or equivalent canonical form snapshot) so the UI can rehydrate and preserve user progress.
+**Applied**: Added `values` to `EntryFormState`, returned submitted participant/bracket/picks in create/update error paths, and rehydrated `EntryForm`/`BracketEditor` from that state.
+
+## 2026-03-24 - Preserve Bracket Type via Derived State, Not Initial Local Default
+
+**Mistake**: Left bracket type select primarily anchored to local initial state, which could fall back to `MAIN` in failed-submit rerender/remount paths.
+**Pattern**: Initializing critical form state from defaults without consistently deriving from preserved server-action values.
+**Rule**: For failed-submit recovery, derive current field values from preserved action-state first, then use local user overrides; avoid hard defaulting when recovery data exists.
+**Applied**: Updated `EntryForm` bracket type selection to derive from `state.values.bracketType` when no active override is present and updated action fallback to reuse `previousState` bracket type before `MAIN`.
+
+## 2026-03-24 - Use One Canonical Form Field Path for Critical Values
+
+**Mistake**: Create and edit flows used different posted field paths for `bracketType` (select name vs hidden input), increasing chances of payload/state mismatch during failed-submit recovery.
+**Pattern**: Allowing parallel input sources for one critical field across flow variants.
+**Rule**: For critical form values that drive layout/validation, submit exactly one canonical field source in all modes; avoid duplicate or mode-specific field-name paths.
+**Applied**: Switched `EntryForm` to always submit hidden canonical `bracketType` and removed create-select `name` to eliminate ambiguous payloads.
+
+## 2026-03-24 - Preserve Recovery State With One Client Owner, Not Tri-Source Derivation
+
+**Mistake**: Kept bracket type as a derived value across three potential owners (local override, server-action values, default props), which left room for fallback snaps after failed submits.
+**Pattern**: Multi-owner field derivation in interactive forms where both draft edits and server validation recovery are involved.
+**Rule**: Use one canonical client-owned value for interactive fields, then explicitly hand off to server-action recovery state after submit failures without creating competing owner precedence chains.
+**Applied**: Refactored `EntryForm` bracket type flow to a single client-selected value plus explicit submit-time draft handoff, keeping select display, hidden payload, and bracket editor variant aligned after failed create submits.
+
+## 2026-03-24 - Create Mode Should Submit Critical Fields From Visible Inputs
+
+**Mistake**: Relied on hidden `bracketType` submit indirection in create mode while also rendering a visible bracket-type select, which complicated render ownership and made recovery/debugging brittle.
+**Pattern**: Hidden-input indirection for fields that users actively edit.
+**Rule**: In create flows, submit critical editable fields directly from their visible controls (`name` on the actual input/select). Reserve hidden mirrors for non-editable modes only.
+**Applied**: Restored create-mode `name=\"bracketType\"` on the visible select, kept hidden bracket type only for edit mode, and aligned select/editor/payload to the same reducer-owned value.
+
+## 2026-03-24 - Prevent Select First-Option Fallback With Explicit Value Normalization
+
+**Mistake**: Assumed compile-time enum types alone guaranteed runtime select value/option equality in all failed-submit rerender paths.
+**Pattern**: Relying on type annotations instead of runtime normalization for UI controls that can visually fall back to the first option.
+**Rule**: For critical select controls, normalize runtime value against canonical option values before rendering; then use that normalized value consistently for UI, dependent rendering, and payload fields.
+**Applied**: Added `normalizeBracketType(...)` in `EntryForm` and switched select value, editor bracket type, editor key, and edit hidden bracket-type field to a single normalized `effectiveBracketType`.
+
+## 2026-03-24 - Avoid Copy/Rehydrate Local State When Render-Time Derivation Is Enough
+
+**Mistake**: Used reducer/effect copy-rehydration for bracket type in create mode, even though failed-submit state can be read directly during render.
+**Pattern**: Introducing local state synchronization layers that can drift from source-of-truth values.
+**Rule**: When server action state already carries the needed value, prefer render-time canonical derivation (`draft -> preserved -> default`) over effect-driven copying into another local owner.
+**Applied**: Replaced create-mode bracket-type reducer/effect copy flow with render-time `effectiveBracketType` derivation and bound select/editor/payload to that one value.

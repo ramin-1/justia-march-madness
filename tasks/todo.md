@@ -940,3 +940,154 @@ Tiny polish tweak delivered. `Winner:` now sits slightly higher and feels more c
 
 ## Review
 `SECOND_CHANCE_S16` now resolves Sweet Sixteen participants from canonical completed Round-of-32 winners when available, so real team names replace placeholder `Team A/B` labels across create/edit/view flows. The change is shared, type-safe, and keeps all existing bracket/scoring/sync behavior intact.
+
+---
+
+# Task: Partial-Forward Downstream Pick Unlocking
+
+## Plan
+- [x] Re-audit shared downstream team-availability logic and confirm all-or-nothing lock behavior source.
+- [x] Update shared availability logic so known upstream winners are immediately selectable downstream even when sibling branches are still unknown.
+- [x] Keep behavior scoped to availability/unlock semantics only (no scoring/storage/topology changes).
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 09:05 PDT - Confirmed root cause in `getAvailableTeamsForGame()`: strict templates returned `[]` as soon as any in-template source winner was missing, forcing all-or-nothing downstream locking.
+- 2026-03-24 09:08 PDT - Updated strict missing-source path to return partially resolved team options (`fixedTeams` + any known source winners) so one known branch can advance immediately.
+- 2026-03-24 09:13 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Partial-forward unlock behavior is now supported in shared bracket availability logic for strict templates (`MAIN`, `SECOND_CHANCE_S16`): known upstream winners are immediately selectable downstream without waiting for sibling branches. Scoring, serialization, canonical topology, and sync logic were unchanged.
+
+---
+
+# Task: Preserve Form State on Entry Validation Failure
+
+## Plan
+- [x] Re-audit create/edit server-action form state flow and identify why participant/picks reset after validation errors.
+- [x] Add submitted form value hydration to server action error responses.
+- [x] Update client entry form/bracket editor initialization so failed submits restore participant name, bracket type, and picks.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 09:33 PDT - Confirmed root cause: `EntryFormState` only returned `message` + `fieldErrors`; on failed server action rerender/reset there was no submitted value payload to rehydrate participant/pick selections.
+- 2026-03-24 09:37 PDT - Added `values` payload to entry action-state and implemented `getSubmittedEntryFormValues()` in server actions so all validation/error returns include participant name, bracket type, and selected picks.
+- 2026-03-24 09:41 PDT - Updated `EntryForm` to rehydrate input defaults from returned `state.values` and remount `BracketEditor` with those submitted picks via a stable state-derived key.
+- 2026-03-24 09:45 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Failed entry submissions now preserve participant name, bracket type, and previously selected picks, so users can correct only missing games and resubmit without re-entering the bracket. Successful submit/redirect behavior remains unchanged.
+
+---
+
+# Task: Preserve Non-Main Bracket Type on Failed Submission
+
+## Plan
+- [x] Identify why bracket type still falls back to `MAIN` after failed validation.
+- [x] Keep bracket type sourced from preserved action-state values when available.
+- [x] Harden server fallback so submitted-value capture does not default to `MAIN` when a prior bracket type exists.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 10:02 PDT - Confirmed bracket type reset source: select state remained local-override based; on failed submit remount path could initialize from default `MAIN` instead of preserved action-state value.
+- 2026-03-24 10:05 PDT - Updated `EntryForm` to derive selected bracket type from `state.values.bracketType` when no active user override exists.
+- 2026-03-24 10:07 PDT - Updated entry action submitted-value fallback to use `previousState.values?.bracketType` before `MAIN` default.
+- 2026-03-24 10:12 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Failed submissions now retain non-main bracket selections (`SECOND_CHANCE_S16` / `CHAMPIONSHIP`) alongside participant name and prior picks, and users can correct missing games without bracket-type reset.
+
+---
+
+# Task: Bracket Type Reset Follow-Up (Canonical Submit Source Fix)
+
+## Plan
+- [x] Re-trace create-flow bracket type source from UI selection to submitted `FormData` on failed submits.
+- [x] Remove split submit-source behavior (create select field vs edit hidden field) and use one canonical posted bracket-type field.
+- [x] Keep participant/picks failed-submit preservation intact and verify no regressions.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 10:26 PDT - Identified source-of-truth mismatch risk: create flow posted bracket type directly from `<select name=\"bracketType\">` while edit flow used hidden canonical input, creating inconsistent payload paths.
+- 2026-03-24 10:28 PDT - Updated `EntryForm` to always submit a hidden canonical `bracketType` driven by the same state as the visible select + rendered bracket editor.
+- 2026-03-24 10:29 PDT - Removed `name` from create select to prevent ambiguous duplicate payload keys and keep one posted `bracketType` value.
+- 2026-03-24 10:33 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Create-flow failed submissions now use a single canonical bracket-type submit source, aligned with the displayed select/editor state, preventing unintended reset to `MAIN` while preserving participant name and prior picks.
+
+---
+
+# Task: Bracket Type Reset Follow-Up (Client State Ownership Fix)
+
+## Plan
+- [x] Trace create-mode bracket type ownership across local state, action-state values, and submitted hidden field.
+- [x] Remove conflicting multi-owner bracket-type derivation in `EntryForm` and enforce one canonical client-selected value.
+- [x] Ensure failed-submit rehydration can take over without blocking subsequent user edits.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 11:10 PDT - Confirmed bracket type remained multi-owned (`override -> action state -> default`) and could still snap to fallback state in client rerender paths despite server preservation.
+- 2026-03-24 11:14 PDT - Refactored `EntryForm` to use one canonical client-selected bracket type with explicit draft-vs-rehydrated precedence instead of tri-source derived ownership.
+- 2026-03-24 11:16 PDT - Added submit-time draft handoff so failed action-state values can rehydrate bracket type while still allowing user changes after errors.
+- 2026-03-24 11:22 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Create-form bracket type now stays stable after failed submissions because the visible select, hidden submit field, and bracket editor are driven from a single client-owned selected value with controlled action-state rehydration handoff. Participant name and picks preservation behavior remained intact.
+
+---
+
+# Task: Bracket Type Reset Follow-Up (Create Render Ownership Root Fix)
+
+## Plan
+- [x] Trace create-flow render ownership for bracket type across page props, local form state, and action-state recovery.
+- [x] Remove competing ownership/fallback behavior in create mode and make select/editor/payload derive from one canonical selected bracket type state.
+- [x] Align create submission source to the visible select field and keep edit path unchanged.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 11:45 PDT - Confirmed remaining risk: create mode still mixed draft/rehydration/default precedence with hidden-field indirection, leaving room for bracket type drift in render/recovery paths.
+- 2026-03-24 11:49 PDT - Refactored `EntryForm` bracket type ownership to a single reducer-driven `selectedBracketType` with explicit rehydrate action from failed action-state values.
+- 2026-03-24 11:52 PDT - Updated create mode to submit `bracketType` directly from the visible select (`name=\"bracketType\"`) and keep hidden bracketType only for edit mode.
+- 2026-03-24 11:58 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Create-flow bracket type now has one render owner (`selectedBracketType`) shared by select display, bracket editor variant, and create payload source. Failed-submit recovery rehydrates that same owner from action-state values, preventing silent fallback to `MAIN` while preserving participant name and picks.
+
+---
+
+# Task: Bracket Type Dropdown/Editor Visual Divergence Follow-Up
+
+## Plan
+- [x] Re-trace create-mode runtime bracket-type values across select options, selected value, action-state values, and editor prop.
+- [x] Add explicit bracket-type normalization and enforce a single normalized value path for select/editor/payload.
+- [x] Guard against select visual fallback by ensuring rendered select value always matches a canonical option.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 12:21 PDT - Confirmed user-reported symptom implies visual select fallback behavior despite editor retaining non-main context; traced create path through `EntryForm`, `action-state`, `actions`, and bracket type constants.
+- 2026-03-24 12:26 PDT - Added shared `normalizeBracketType(...)` in `EntryForm` and switched select/editor/edit-hidden-field/editor-key usage to one `effectiveBracketType`.
+- 2026-03-24 12:28 PDT - Added create select remount key tied to `effectiveBracketType` to force reliable visual alignment with the canonical normalized value.
+- 2026-03-24 12:34 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Create-flow now enforces one normalized bracket type value (`effectiveBracketType`) for select UI, editor variant, and payload paths. This prevents select/editor visual drift and removes dependency on browser first-option fallback behavior.
+
+---
+
+# Task: Final Bracket Type Drift Fix (Render-Time Canonical Ownership)
+
+## Plan
+- [x] Remove create-mode reducer/effect copy ownership for bracket type.
+- [x] Replace with a render-time canonical `effectiveBracketType` derived from draft + preserved failed-submit state + default.
+- [x] Keep select/editor/payload bound to the same canonical value and retain participant/picks failed-submit preservation.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 13:08 PDT - Confirmed `EntryForm` still used reducer/effect state-copy rehydration for bracket type, which remained a potential drift path.
+- 2026-03-24 13:12 PDT - Removed reducer/effect copy flow and switched create mode to render-time canonical bracket type derivation.
+- 2026-03-24 13:15 PDT - Bound select value, create payload (`name="bracketType"`), and editor bracket type to the same `effectiveBracketType`.
+- 2026-03-24 13:20 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Create-form bracket type now has no copy-based client rehydration path. The dropdown, rendered editor, and submitted payload all derive from one render-time canonical value, eliminating the reducer/effect drift pattern while preserving participant name and pick recovery on failed submit.
