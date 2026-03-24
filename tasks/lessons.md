@@ -133,3 +133,108 @@ YYYY-MM-DD
 **Pattern**: Reusing scaffolding wrappers on finalized user-facing routes without re-evaluating whether placeholder messaging still belongs.
 **Rule**: Once a route is production-usable, render with standard page shell/components and remove scaffold-only callouts unless explicitly needed.
 **Applied**: Switched `/login` from `ScaffoldPage` to `PageShell`, preserving form/auth behavior while removing the scaffold banner.
+
+## 2026-03-23 - Bracket Board UX Needs Width + Composition, Not Just Column Rendering
+
+**Mistake**: Delivered an initial traditional bracket layout that still relied on internal `min-w`/scroll wrappers and default page max-width constraints, leaving the board cramped with wasted side gutters.
+**Pattern**: Translating round columns without rebalancing overall board composition and container width for the target screen.
+**Rule**: For ESPN-like bracket UX, treat layout as one composed canvas (quadrants + centered finals) and audit page/container constraints so desktop width is actually utilized before adding overflow fallbacks.
+**Applied**: Added bracket-specific wide `PageShell` mode and refactored desktop board into quadrant composition without internal forced-width scrolling.
+
+## 2026-03-23 - Avoid Mounting Duplicate Radio Trees Behind CSS Visibility Toggles
+
+**Mistake**: Mounted desktop and mobile bracket trees at the same time and relied on CSS (`hidden`/breakpoints) to toggle visibility, while both trees reused identical radio `name` groups.
+**Pattern**: Treating CSS-hidden interactive forms as harmless duplicates even when browser-level radio grouping still applies across the full DOM.
+**Rule**: For interactive form controls (especially radio groups), only mount one active layout tree at a time or namespace groups uniquely; do not keep duplicate same-name radios mounted concurrently.
+**Applied**: Added viewport-gated conditional rendering so only one interactive bracket tree is mounted, restoring stable pick selection.
+
+## 2026-03-23 - Keep Final Four Pairing Semantics in Canonical Source Mapping
+
+**Mistake**: Left canonical Final Four source mapping wired as East/West and South/Midwest after UI refactors, causing wrong semifinal compositions everywhere.
+**Pattern**: Assuming display composition controls semifinal pairings when participant derivation is actually sourced from canonical `sourceGameIds`.
+**Rule**: Treat canonical game dependency mapping as the single source of truth for matchup composition and validate semifinal pairings explicitly (`EAST+SOUTH`, `WEST+MIDWEST`) after topology/UI updates.
+**Applied**: Corrected `FINAL4_G1` and `FINAL4_G2` `sourceGameIds` in `lib/brackets/registry.ts` so all flows inherit the right pairings.
+
+## 2026-03-23 - Bracket Tree UX Requires Source-Relative Placement, Not Column-Top Stacks
+
+**Mistake**: Rendered later rounds as simple per-column stacks, so Round 2+ cards started near the top of each column instead of vertically centering relative to feeder games.
+**Pattern**: Treating bracket rounds as independent lists rather than as a dependency tree with positional relationships.
+**Rule**: For bracket-board UIs, compute later-round vertical offsets from upstream source indices and route connectors from feeder games; avoid independent list stacking for downstream rounds.
+**Applied**: Added shared tree layout math (`buildTreeLayout`) in `BracketEditor` and switched region/finals rendering to absolute source-relative placement with SVG connector paths.
+
+## 2026-03-23 - Complete Refactors by Removing All Stale Symbol References
+
+**Mistake**: A partial bracket-layout refactor left runtime references to a removed constant (`ROUND_COLUMN_GAP_CLASSES`) in one render path.
+**Pattern**: Updating layout strategy/constants without fully removing legacy usage points before runtime verification.
+**Rule**: After UI refactors that replace core layout primitives, run a symbol search for removed constants and perform a full dev/runtime smoke check so stale references cannot ship.
+**Applied**: Verified `BracketEditor` no longer references `ROUND_COLUMN_GAP_CLASSES`, confirmed fresh build health, and captured stale-dev-bundle signal as a cache artifact rather than active source.
+
+## 2026-03-23 - Do Not Mix Conflicting Position Utilities on Tree-Positioned Wrappers
+
+**Mistake**: Tree-positioned game cards received both `relative` and `absolute` utility classes on the same wrapper.
+**Pattern**: Reusing a generic card wrapper class (`relative`) in an absolute-coordinate layout without guarding for positioning mode.
+**Rule**: In coordinate-based board layouts, wrapper position must be explicit and singular; never combine conflicting `position` utilities on the same element.
+**Applied**: Updated `BracketEditor` card wrapper logic to skip forced `relative` when an `absolute` class is supplied, restoring card/connector coordinate alignment.
+
+## 2026-03-23 - Avoid Exact-Fit Tree Container Heights For Dense Bracket Boards
+
+**Mistake**: Tree layout height was computed as an exact mathematical fit (`lastTop + cardHeight`) with no render buffer.
+**Pattern**: Using strict theoretical dimensions in a UI where borders/shadows/content variability can push the last card beyond the visible container.
+**Rule**: Bracket tree containers should include a small bottom padding buffer and be based on actual positioned card bottoms, not only theoretical round-depth formulas.
+**Applied**: Updated `buildTreeLayout` to use max rendered card bottom plus shared bottom padding, preventing bottom-row region card spillover.
+
+## 2026-03-23 - Finals Composition Must Match Intended Horizontal Semifinal/Final Relationship
+
+**Mistake**: Reused a generic two-round tree (`final4 -> championship`) for center finals, which positioned both semifinals in one column and final in a side column.
+**Pattern**: Applying generic round-column layout where a specific visual composition is required.
+**Rule**: When product expects `Semifinal 1 | Final | Semifinal 2`, use a dedicated finals coordinate layout and draw connectors from both semifinals into the centered final.
+**Applied**: Replaced center finals rendering with explicit three-slot absolute coordinates and matching connector paths.
+
+## 2026-03-23 - Center Zone Should Not Compete With Region Tracks In Dense Bracket Boards
+
+**Mistake**: Kept center finals inside the same desktop grid track layout as region quadrants, forcing East/West/South/Midwest to share width with finals and creating persistent crowding/overflow.
+**Pattern**: Treating center finals as a peer grid column when the intended composition is four quadrants plus a dedicated center lane.
+**Rule**: For ESPN-style boards, render region quadrants in a 2x2 grid and place finals in a dedicated centered overlay/lane with enough vertical separation between top and bottom quadrants.
+**Applied**: Reworked desktop board to East/West top + South/Midwest bottom with increased row gap, and moved center finals into an absolute centered zone with pointer-safe layering.
+
+## 2026-03-23 - Vertical Readability Depends on Card Height + Stride Together
+
+**Mistake**: Attempted crowding fixes primarily through board composition changes while leaving regional card height/vertical step too small, which kept Round 1 rows visually compressed.
+**Pattern**: Adjusting container placement without proportionally adjusting internal tree geometry constants.
+**Rule**: For bracket readability, tune card height, vertical stride, and center-band gap as a coordinated set; changing only one dimension often leaves crowding unresolved.
+**Applied**: Increased shared region card height/stride constants and enlarged top-vs-bottom quadrant gap, while preserving connector/tree alignment logic.
+
+## 2026-03-23 - Region Containers Should Fit Tree Geometry (Or Center It), Not Stretch Arbitrarily
+
+**Mistake**: Left region containers stretched to full grid cell width while tree geometry had fixed absolute width anchored at left.
+**Pattern**: Mixing fixed-width tree coordinates with full-width parent containers, producing obvious unused interior whitespace on one side.
+**Rule**: For fixed-coordinate bracket trees, either center the tree within the container or make the container width fit the tree so internal width is used efficiently.
+**Applied**: Switched region boxes to fit-content and centered tree rendering (`w-fit`, `mx-auto`, centered grid items), reducing wasted side space while preserving connector alignment.
+
+## 2026-03-23 - Dense Bracket Cards Should Prioritize High-Value Information
+
+**Mistake**: Continued rendering low-value metadata (`Region • GAME_ID`) inside compact desktop cards where vertical space is tight.
+**Pattern**: Treating debug/internal identifiers as equal to primary bracket-reading information in constrained UI components.
+**Rule**: In compact bracket cards, prioritize matchup title, team options, and winner outcome text; remove/minimize metadata that does not directly help pick/view decisions.
+**Applied**: Hid metadata lines for compact tree cards and reallocated space to essential card content with taller shared card geometry.
+
+## 2026-03-23 - Leave Explicit Bottom Breathing Room for Outcome Text in Fixed-Height Cards
+
+**Mistake**: Even after major geometry improvements, compact fixed-height cards still left the `Winner:` line visually tight to the bottom edge.
+**Pattern**: Optimizing for total content fit but not reserving explicit bottom rhythm for optional outcome copy.
+**Rule**: In fixed-height bracket cards, reserve a small explicit margin/padding budget for conditional bottom text (like winner outcomes), not just the core team rows.
+**Applied**: Added a subtle card-height/padding increase and extra top spacing before `Winner:` in compact cards.
+
+## 2026-03-23 - Tiny Polish Requests Often Need Margin Rebalancing, Not More Height
+
+**Mistake**: Kept solving winner-line readability through repeated card height increases when the final ask was simply to move the line slightly higher.
+**Pattern**: Reaching for global geometry first when the UX request targets local rhythm inside an already-balanced component.
+**Rule**: For micro-polish adjustments, prefer the smallest local spacing change (for example `mt`/`mb`) before altering shared geometry constants.
+**Applied**: Moved compact `Winner:` text upward with a one-step margin reduction while leaving the broader layout intact.
+
+## 2026-03-23 - Template Availability Should Accept Canonical Winners For External Source Games
+
+**Mistake**: Limited downstream team availability to in-form picks only, so `SECOND_CHANCE_S16` Sweet Sixteen games fell back to `Team A/B` placeholders even when Round-of-32 results were already final.
+**Pattern**: Treating template boundaries as data boundaries and ignoring canonical winners from source games outside the active bracket template.
+**Rule**: For multi-template brackets, downstream participant resolution must support canonical final winners for source games outside the active template, while still requiring user picks for in-template dependencies.
+**Applied**: Added optional `sourceWinnerTeamKeyByGameId` support to availability/sanitization + server validation and wired it through create/edit/view flows.

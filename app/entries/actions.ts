@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { EntryFormState } from "@/app/entries/action-state";
 import type { BracketType } from "@/lib/brackets/types";
+import { getFinalWinnerTeamKeyByGameId } from "@/lib/brackets/team-labels";
 import { prisma } from "@/lib/prisma";
 import {
   buildEntryName,
@@ -126,7 +127,10 @@ export async function createEntryAction(
   _previousState: EntryFormState,
   formData: FormData,
 ): Promise<EntryFormState> {
-  const parsedFormData = parseEntryFormData(formData);
+  const sourceWinnerTeamKeyByGameId = await getFinalWinnerTeamKeyByGameId();
+  const parsedFormData = parseEntryFormData(formData, {
+    sourceWinnerTeamKeyByGameId,
+  });
 
   if (!parsedFormData.success) {
     return {
@@ -218,6 +222,7 @@ export async function updateEntryAction(
 
   const parsedFormData = parseEntryFormData(formData, {
     expectedBracketType: existingEntry.bracketType,
+    sourceWinnerTeamKeyByGameId: await getFinalWinnerTeamKeyByGameId(),
   });
 
   if (!parsedFormData.success) {

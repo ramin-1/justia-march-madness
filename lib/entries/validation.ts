@@ -5,6 +5,7 @@ import {
   getTemplateGameIds,
   getTemplateRoundConfigs,
   sanitizePicksForTemplate,
+  type WinnerTeamKeyByGameId,
 } from "@/lib/brackets/registry";
 import {
   BRACKET_TYPES,
@@ -116,7 +117,10 @@ export function getBracketTypeLabel(bracketType: BracketType) {
 
 export function parseEntryFormData(
   formData: FormData,
-  options?: { expectedBracketType?: BracketType },
+  options?: {
+    expectedBracketType?: BracketType;
+    sourceWinnerTeamKeyByGameId?: WinnerTeamKeyByGameId;
+  },
 ): ParsedEntryFormResult {
   const parsedInput = entryInputSchema.safeParse({
     participantName: getFormStringValue(formData, "participantName"),
@@ -151,6 +155,7 @@ export function parseEntryFormData(
       bracketType,
       gameId,
       picksByGameId,
+      sourceWinnerTeamKeyByGameId: options?.sourceWinnerTeamKeyByGameId,
     });
 
     if (availableTeams.length === 0) {
@@ -184,6 +189,7 @@ export function parseEntryFormData(
   const sanitizedPicks = sanitizePicksForTemplate({
     bracketType,
     picksByGameId,
+    sourceWinnerTeamKeyByGameId: options?.sourceWinnerTeamKeyByGameId,
   });
 
   const picksJson: EntryPicksJson = {
@@ -200,6 +206,7 @@ export function parseEntryFormData(
       bracketType,
       gameId: championshipGameId,
       picksByGameId: sanitizedPicks,
+      sourceWinnerTeamKeyByGameId: options?.sourceWinnerTeamKeyByGameId,
     });
 
     if (championshipTeams.length !== 2) {

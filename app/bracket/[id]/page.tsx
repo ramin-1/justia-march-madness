@@ -57,6 +57,7 @@ export default async function BracketViewPage({
     <PageShell
       title={entry.name}
       description={`Read-only saved ${BRACKET_TYPE_LABELS[entry.bracketType]}.`}
+      size="wide"
     >
       <div className="mb-4 flex justify-end print:hidden">
         <PrintBracketButton />

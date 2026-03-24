@@ -30,6 +30,8 @@ export type TeamOption = {
   label: string;
 };
 
+export type WinnerTeamKeyByGameId = Record<string, string>;
+
 export type CanonicalGameConfig = {
   id: string;
   round: BracketRoundKey;
@@ -300,13 +302,13 @@ const FINAL4_GAMES: CanonicalGameConfig[] = [
     id: "FINAL4_G1",
     round: "final4",
     slotLabel: "Final Four - Semifinal 1",
-    sourceGameIds: ["EAST_E8_G1", "WEST_E8_G1"],
+    sourceGameIds: ["EAST_E8_G1", "SOUTH_E8_G1"],
   },
   {
     id: "FINAL4_G2",
     round: "final4",
     slotLabel: "Final Four - Semifinal 2",
-    sourceGameIds: ["SOUTH_E8_G1", "MIDWEST_E8_G1"],
+    sourceGameIds: ["WEST_E8_G1", "MIDWEST_E8_G1"],
   },
 ];
 
@@ -523,11 +525,13 @@ export function getAvailableTeamsForGame({
   gameId,
   picksByGameId,
   teamLabelOverridesByKey,
+  sourceWinnerTeamKeyByGameId,
 }: {
   bracketType: BracketType;
   gameId: string;
   picksByGameId: PicksByGameId;
   teamLabelOverridesByKey?: Record<string, string>;
+  sourceWinnerTeamKeyByGameId?: WinnerTeamKeyByGameId;
 }): TeamOption[] {
   const game = getCanonicalGame(gameId);
   const template = getBracketTemplate(bracketType);
@@ -550,6 +554,15 @@ export function getAvailableTeamsForGame({
       sourceWinnerTeams.push({
         key: sourcePick.winnerTeamKey,
         label: getTeamLabel(sourcePick.winnerTeamKey, teamLabelOverridesByKey),
+      });
+      continue;
+    }
+
+    const sourceWinnerTeamKey = sourceWinnerTeamKeyByGameId?.[sourceGameId];
+    if (typeof sourceWinnerTeamKey === "string" && sourceWinnerTeamKey.length > 0) {
+      sourceWinnerTeams.push({
+        key: sourceWinnerTeamKey,
+        label: getTeamLabel(sourceWinnerTeamKey, teamLabelOverridesByKey),
       });
       continue;
     }
@@ -605,9 +618,11 @@ export function getAvailableTeamsForGame({
 export function sanitizePicksForTemplate({
   bracketType,
   picksByGameId,
+  sourceWinnerTeamKeyByGameId,
 }: {
   bracketType: BracketType;
   picksByGameId: PicksByGameId;
+  sourceWinnerTeamKeyByGameId?: WinnerTeamKeyByGameId;
 }): PicksByGameId {
   const sanitized: PicksByGameId = {};
 
@@ -621,6 +636,7 @@ export function sanitizePicksForTemplate({
       bracketType,
       gameId,
       picksByGameId: sanitized,
+      sourceWinnerTeamKeyByGameId,
     });
 
     if (availableTeams.some((teamOption) => teamOption.key === selectedKey)) {

@@ -634,3 +634,309 @@ Nav visibility UX bug fixed with a narrow server-component change in `SiteNav`. 
 
 ## Review
 Scoped UI-only cleanup complete. The login form and auth flow remain unchanged, and the yellow scaffold/info banner is no longer rendered on `/login`.
+
+---
+
+# Task: Traditional Bracket Layout UI Upgrade (Create/Edit/View)
+
+## Plan
+- [x] Re-read required files and confirm current bracket UI is round-grouped grid cards.
+- [x] Add shared bracket presentation primitives in `BracketEditor` (game card + region columns + center finals).
+- [x] Implement traditional desktop/tablet bracket layout for `MAIN` and `SECOND_CHANCE_S16` using existing game/pick logic.
+- [x] Keep `CHAMPIONSHIP` flow and mobile fallback usable without changing logic.
+- [x] Preserve print behavior and ensure traditional layout is printable.
+- [x] Verify with `npm run typecheck` and `npm run lint`.
+
+## Progress Notes
+- 2026-03-23 02:01 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `docs/multi-bracket-alignment.md`, `tasks/*`, and inspected current bracket rendering stack (`BracketEditor`, entry form pages, bracket view page, registry helpers, and print CSS).
+- 2026-03-23 02:04 PDT - Confirmed root presentation gap: current create/edit/view flows render by round sections with card grids, not a traditional bracket progression layout.
+- 2026-03-23 02:15 PDT - Refactored `components/bracket-editor.tsx` into shared presentation primitives (reusable game-card renderer + region bracket sections + center finals column) while preserving existing pick availability, winner selection, and view-mode result coloring/winner display logic.
+- 2026-03-23 02:18 PDT - Added traditional bracket desktop/tablet layout for `MAIN` and `SECOND_CHANCE_S16` with left/right regional round progression, center Final Four/Championship section, and inline connector lines between round columns.
+- 2026-03-23 02:20 PDT - Kept a simplified stacked-round fallback for smaller screens and retained championship-specific score-guess UI behavior.
+- 2026-03-23 02:22 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Traditional bracket presentation upgrade is complete for create/edit/view flows without domain logic changes. `MAIN` and `SECOND_CHANCE_S16` now render in a classic regional bracket layout on larger screens (and print), while mobile keeps a usable stacked-round fallback and `CHAMPIONSHIP` remains focused and intact.
+
+---
+
+# Task: ESPN-Like Bracket Board Refinement (Quadrants + Width)
+
+## Plan
+- [x] Re-read required files and identify why the current desktop board still feels cramped and scroll-heavy.
+- [x] Refine bracket board composition into a single quadrant-style canvas (East/South left, West/Midwest right, finals centered).
+- [x] Remove/relax internal min-width + overflow constraints causing awkward horizontal scrolling.
+- [x] Add bracket-page-specific wider page shell mode to reduce wasted side gutters.
+- [x] Preserve create/edit/view interaction behavior, mobile fallback, and print usability.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 02:34 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `docs/multi-bracket-alignment.md`, and inspected `BracketEditor`, bracket pages, `PageShell`, and responsive/print classes.
+- 2026-03-23 02:36 PDT - Confirmed current cramped behavior root causes: desktop board still uses internal min-width/overflow wrappers (`min-w-[44rem]`, `min-w-[72rem]`) and bracket pages are constrained by default `PageShell` max width.
+- 2026-03-23 02:42 PDT - Added `size` mode support to `PageShell` and switched bracket create/edit/view pages (and their loading states) to `size=\"wide\"` to reduce large desktop side gutters.
+- 2026-03-23 02:50 PDT - Refined `BracketEditor` desktop board into one composed canvas: quadrant placement for East/South/West/Midwest, centered Final Four/Championship column, and compact top-centered play-in section.
+- 2026-03-23 02:53 PDT - Removed internal desktop `min-w` + `overflow-x` wrappers from region/board sections and tuned card density/spacing/connectors for less cramped composition.
+- 2026-03-23 02:57 PDT - Kept mobile fallback (stacked rounds) and championship-specific behavior intact; desktop board now activates at `xl+` while print keeps the board layout.
+- 2026-03-23 03:00 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Refinement complete. Bracket pages now use a wider container and the desktop board reads as a single bracket canvas with clearer quadrant composition and centered finals. Internal forced-width scrolling was removed from the desktop board, spacing is less cramped, and existing create/edit/view logic and mobile fallback behavior were preserved.
+
+---
+
+# Task: Critical Bracket Pick Selection Regression Fix
+
+## Plan
+- [x] Re-read required docs and inspect current bracket interaction bindings before changing code.
+- [x] Identify exact root cause for unstable create/edit pick selection behavior.
+- [x] Fix selection stability while preserving existing bracket logic and new desktop layout.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 03:18 PDT - Inspected `BracketEditor` interaction wiring and confirmed same `pick.<gameId>` radio groups were rendered twice (desktop and stacked trees mounted simultaneously, only CSS-hidden), creating duplicate radio groups in the DOM.
+- 2026-03-23 03:20 PDT - Implemented viewport-gated rendering in `BracketEditor` so only one interactive layout tree is mounted at a time (`xl` desktop board or stacked fallback), preventing duplicate radio group conflicts.
+- 2026-03-23 03:21 PDT - Added `useIsXlViewport()` hook and adjusted stacked layout visibility classes to keep non-desktop and print paths usable without parallel interactive duplicates.
+- 2026-03-23 03:25 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Critical pick-selection regression fixed. Create/edit radio selections are now stable because each matchup radio group exists once in the mounted DOM, so selecting one game no longer causes unrelated visual unchecking or disappearing picks.
+
+---
+
+# Task: Final Four Pairing Mapping Correction (East/South, West/Midwest)
+
+## Plan
+- [x] Re-read required docs and inspect where Final Four participants are derived.
+- [x] Confirm whether the bug is canonical mapping, layout ordering, or both.
+- [x] Apply the smallest generic mapping fix so all create/edit/view flows inherit correct semifinal pairings.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 03:35 PDT - Inspected `lib/brackets/registry.ts` and `components/bracket-editor.tsx`; confirmed participant derivation comes from canonical `FINAL4_G1`/`FINAL4_G2` `sourceGameIds`, not a view-only ordering function.
+- 2026-03-23 03:36 PDT - Confirmed exact root cause: canonical mapping was set to East vs West (`FINAL4_G1`) and South vs Midwest (`FINAL4_G2`), which is incorrect for required regional semifinal structure.
+- 2026-03-23 03:37 PDT - Updated canonical mapping to `FINAL4_G1: EAST_E8_G1 + SOUTH_E8_G1` and `FINAL4_G2: WEST_E8_G1 + MIDWEST_E8_G1` in `lib/brackets/registry.ts`.
+- 2026-03-23 03:40 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Final Four pairing bug fixed at the shared canonical source. Create/edit/view flows now derive semifinal matchups generically as East vs South and West vs Midwest without hardcoding team names or patching page-local display logic.
+
+---
+
+# Task: Bracket Tree Alignment + Connector Routing Refinement
+
+## Plan
+- [x] Re-read required files and inspect where later-round vertical placement is determined in the current bracket board.
+- [x] Replace simple top-stacked per-round placement with source-relative tree placement for downstream rounds.
+- [x] Add visible connector routing from upstream games to downstream games without blocking interactions.
+- [x] Preserve create/edit/view pick behavior, mobile fallback usability, and print usability.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 04:05 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `docs/multi-bracket-alignment.md`, and inspected `components/bracket-editor.tsx` layout rendering paths; confirmed later rounds were visually stacked per column rather than centered to upstream feeder games.
+- 2026-03-23 04:10 PDT - Added tree layout primitives in `BracketEditor` (`buildTreeLayout`) to compute per-game absolute top offsets by round/index so downstream games are centered relative to their two source matchups.
+- 2026-03-23 04:15 PDT - Updated regional rendering to position cards absolutely from computed tree coordinates and draw SVG connector paths between upstream/downstream games.
+- 2026-03-23 04:18 PDT - Updated center finals/championship rendering to use the same tree-placement/connector system for consistent progression readability.
+- 2026-03-23 04:22 PDT - Verified connector layers are pointer-events disabled and existing game card interactions remain clickable.
+- 2026-03-23 04:26 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Review
+Bracket board placement now behaves as a true tournament tree on desktop/print: downstream rounds are vertically aligned to feeder games (instead of top-stacked columns), and connector lines make matchup progression significantly easier to follow. Existing create/edit/view behavior, multi-bracket logic, and mobile fallback were preserved.
+
+---
+
+# Task: Runtime Regression Fix - `ROUND_COLUMN_GAP_CLASSES` Undefined
+
+## Plan
+- [x] Re-read required docs/files and inspect `components/bracket-editor.tsx` for stale `ROUND_COLUMN_GAP_CLASSES` references.
+- [x] Identify whether the runtime issue is active source code, stale refactor residue, or dev build cache artifact.
+- [x] Apply the smallest fix needed to restore runtime stability without changing bracket logic.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 14:34 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `tasks/*`, and audited `components/bracket-editor.tsx`; current source contains no `ROUND_COLUMN_GAP_CLASSES` reference.
+- 2026-03-23 14:36 PDT - Confirmed root cause signal in local artifacts: stale `.next/dev` chunk still included an older `renderRegionBracket` implementation referencing `ROUND_COLUMN_GAP_CLASSES` from a partial refactor state.
+- 2026-03-23 14:37 PDT - Verified source now uses tree-layout rendering paths (`buildTreeLayout`) and does not depend on the removed constant.
+- 2026-03-23 14:45 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Runtime regression is resolved by the current source state: stale `ROUND_COLUMN_GAP_CLASSES` usage is no longer present in `BracketEditor`. Fresh compile checks pass, so create/edit/view bracket rendering is restored once the dev server rebuilds from current source.
+
+---
+
+# Task: Bracket Card/Connector Coordinate Unification Fix
+
+## Plan
+- [x] Re-read required docs and inspect `BracketEditor` tree-card and connector rendering paths.
+- [x] Identify where card placement diverges from connector coordinate geometry.
+- [x] Apply minimal fix so cards and connectors share one positioning system on desktop board.
+- [x] Verify interaction safety and run `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 14:55 PDT - Re-audited `components/bracket-editor.tsx`; confirmed connectors use `buildTreeLayout` coordinates while tree card wrappers were being passed `className=\"absolute\"` through `renderGameCard`.
+- 2026-03-23 14:57 PDT - Identified exact divergence: `renderGameCard` always injected `relative` on the wrapper; for tree cards this conflicted with passed `absolute` class, so browser utility ordering could leave cards in relative flow while connectors stayed absolute to computed anchors.
+- 2026-03-23 14:59 PDT - Updated `renderGameCard` wrapper class logic to omit forced `relative` when absolute positioning is requested, so tree cards render at the same computed coordinates used by connector paths.
+- 2026-03-23 15:06 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Desktop bracket placement is now unified: both matchup cards and connector lines are driven by the same `buildTreeLayout` coordinate system, so connectors terminate at the actual rendered cards and downstream rounds are visually aligned to upstream sources.
+
+---
+
+# Task: Region Overflow + Center Finals Positioning Follow-Up
+
+## Plan
+- [x] Re-read required docs and inspect `BracketEditor` region sizing math and finals placement logic.
+- [x] Fix region box overflow so Round 1 Game 8 remains fully inside each region container.
+- [x] Rework center finals placement so semifinal 1 is left, championship is centered, semifinal 2 is right.
+- [x] Keep connector alignment and interactive behavior intact.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 15:15 PDT - Inspected `components/bracket-editor.tsx`; identified region overflow cause in exact-fit height math and finals placement cause in two-column tree model (`final4 -> championship`).
+- 2026-03-23 15:18 PDT - Updated `buildTreeLayout` height calculation to include max rendered card bottom and a shared bottom padding buffer so final row cards do not clip/spill at region edge.
+- 2026-03-23 15:22 PDT - Replaced center-finals two-column tree rendering with explicit three-slot layout (`Semifinal 1 | Championship | Semifinal 2`) using shared absolute coordinates for both cards and connectors.
+- 2026-03-23 15:24 PDT - Updated desktop board center grid track to `auto` for middle column so centered finals layout can render at natural width without compression artifacts.
+- 2026-03-23 15:29 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Both targeted issues are fixed with a narrow layout-only change set: Round 1 bottom cards stay inside region boxes, and the finals area now renders with semifinal 1 on the left, championship centered, and semifinal 2 on the right while preserving existing interactions and bracket logic.
+
+---
+
+# Task: Desktop Board Composition Rebalance (Overflow/Crowding Reduction)
+
+## Plan
+- [x] Re-read required docs and inspect where desktop board quadrant spacing and center-zone occupancy are defined.
+- [x] Rebalance desktop board geometry so center finals no longer consumes horizontal grid track space needed by region quadrants.
+- [x] Increase vertical separation between top and bottom quadrants to carve a dedicated center lane.
+- [x] Preserve tree/card/connector interaction behavior and keep changes layout-only.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 15:41 PDT - Audited `renderTraditionalDesktopLayout` and confirmed root crowding source: 3-column grid forced East/West + center finals to compete on the same row width.
+- 2026-03-23 15:43 PDT - Reworked desktop board into a 2x2 region grid (East/West top, South/Midwest bottom) and moved center finals into an absolute centered overlay zone so regions no longer surrender a grid column to finals.
+- 2026-03-23 15:44 PDT - Increased top/bottom row separation (`gap-y`) to create dedicated center breathing room between East/South and West/Midwest stacks.
+- 2026-03-23 15:47 PDT - Kept finals overlay pointer-safe by wrapping with `pointer-events-none` outer and `pointer-events-auto` inner container to avoid click blocking.
+- 2026-03-23 15:52 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Desktop board composition is now rebalanced around five zones: four region quadrants in a two-row layout plus a dedicated centered finals lane. This significantly reduces horizontal/vertical crowding by removing center-finals grid-track competition while preserving existing bracket logic and interactions.
+
+---
+
+# Task: Desktop Bracket Vertical Expansion + Center Band Enlargement
+
+## Plan
+- [x] Re-read required docs and inspect shared desktop board geometry constants and tree spacing math.
+- [x] Increase regional card height and per-round vertical stride so Round 1 rows are less compressed.
+- [x] Increase center-lane vertical separation between top and bottom quadrants.
+- [x] Keep tree alignment/connectors and interaction behavior unchanged.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 16:06 PDT - Audited `BracketEditor` geometry constants and confirmed vertical crowding stemmed from compact fixed card height (`88`) and low round step (`46`), which yielded minimal Round 1 spacing.
+- 2026-03-23 16:10 PDT - Increased shared region geometry constants (`REGION_CARD_HEIGHT`, `REGION_VERTICAL_STEP`, and related offsets/padding) so regional quadrants render significantly taller with more breathing room.
+- 2026-03-23 16:12 PDT - Increased desktop quadrant row gap (`gap-y`) to carve a larger center band between East/South and West/Midwest for finals placement.
+- 2026-03-23 16:14 PDT - Increased compact card typography/padding for better readability inside expanded cards while preserving existing interaction and pick-result styling behavior.
+- 2026-03-23 16:20 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Desktop board now has materially more vertical capacity: region trees are taller, Round 1 rows are less compressed, and the center finals lane has a substantially larger separation band. The changes remain layout-only and preserve existing bracket logic and interactions.
+
+---
+
+# Task: Matchup Card Enlargement + Region Width Utilization Rebalance
+
+## Plan
+- [x] Re-read required docs and inspect card/column sizing constants plus region container width usage in desktop tree rendering.
+- [x] Increase compact matchup card dimensions so title/metadata/team rows/winner line fit comfortably.
+- [x] Rebalance per-round horizontal geometry and region container sizing so tree uses region box width more effectively.
+- [x] Preserve connector alignment and create/edit/view interaction behavior.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 16:31 PDT - Identified sizing pressure in `REGION_CARD_WIDTH/HEIGHT` and conservative round column width, plus region container stretching full grid cell while tree stayed fixed-width and left-aligned.
+- 2026-03-23 16:34 PDT - Increased shared region/finals card geometry constants (width/height/gaps/offsets) and compact card internal spacing for better content fit across rounds.
+- 2026-03-23 16:36 PDT - Updated region box composition to `w-fit` and centered internal tree width so bracket tree no longer hugs one side with large unused interior space.
+- 2026-03-23 16:38 PDT - Increased desktop horizontal/vertical quadrant gaps further so larger cards remain readable and finals lane still has breathing room.
+- 2026-03-23 16:44 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Desktop matchup cards are now noticeably larger and more readable, and region boxes use their internal width more efficiently via centered fit-content trees instead of left-hugged fixed-width layouts. Connector alignment and interaction behavior were preserved.
+
+---
+
+# Task: Card Overflow Reduction + Metadata Density Cleanup
+
+## Plan
+- [x] Re-read required docs and inspect per-card content density and shared card/region height constants.
+- [x] Remove low-value metadata from compact desktop bracket cards to free vertical space.
+- [x] Increase compact card/stride sizing so title/team rows/winner line fit without vertical crowding.
+- [x] Expand region/finals vertical geometry and center-band separation as needed.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 17:01 PDT - Confirmed key crowding source: compact cards still rendered metadata lines (`Region • GAME_ID`) alongside title/team rows/winner text inside fixed-height tree cards.
+- 2026-03-23 17:03 PDT - Updated desktop compact card content density: removed metadata line for compact cards, increased card padding, and tuned winner text spacing for readability.
+- 2026-03-23 17:05 PDT - Increased shared region/finals height constants (`REGION_CARD_HEIGHT`, `REGION_VERTICAL_STEP`, `CENTER_CARD_HEIGHT`, offsets/padding) to eliminate vertical overflow pressure.
+- 2026-03-23 17:06 PDT - Increased top-vs-bottom desktop quadrant row gap to preserve center finals breathing room with taller regional cards.
+- 2026-03-23 17:12 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Desktop bracket cards are now taller and cleaner, with low-value metadata removed from compact tree cards so essential content (title, teams, winner text) fits comfortably. Region trees and center spacing were expanded in shared geometry constants, preserving connector alignment and interaction behavior.
+
+---
+
+# Task: Minor Card Height Polish - Winner Line Breathing Room
+
+## Plan
+- [x] Re-read required docs and inspect compact card height/padding and winner-line spacing in `BracketEditor`.
+- [x] Apply a subtle shared height/spacing increase for matchup cards.
+- [x] Keep overall board geometry changes minimal while ensuring no overlap regressions.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 17:28 PDT - Confirmed current compact cards were visually improved but still tight on bottom breathing room for `Winner:` text.
+- 2026-03-23 17:29 PDT - Applied narrow sizing polish: small increases to region/finals card heights and tree strides, compact padding, and winner-line top margin.
+- 2026-03-23 17:31 PDT - Increased desktop row gap slightly to absorb taller cards without crowding center finals lane.
+- 2026-03-23 17:36 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Small polish-only spacing tweak complete. Matchup cards are slightly taller and the `Winner:` line has more breathing room while preserving current layout composition, connector alignment, and interaction behavior.
+
+---
+
+# Task: Tiny Winner-Line Vertical Position Polish
+
+## Plan
+- [x] Inspect compact winner-line spacing in `BracketEditor`.
+- [x] Apply a very small margin tweak to move `Winner:` slightly upward.
+- [x] Run `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 17:56 PDT - Confirmed winner text position comes from compact `mt-*` spacing in `renderGameCard`.
+- 2026-03-23 17:57 PDT - Reduced winner top margin for view cards (`mt-2` -> `mt-1`) to pull `Winner:` upward subtly.
+- 2026-03-23 18:00 PDT - Validation complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Tiny polish tweak delivered. `Winner:` now sits slightly higher and feels more connected to matchup content above while preserving overall card balance and existing behavior.
+
+---
+
+# Task: SECOND_CHANCE_S16 Sweet Sixteen Participant Name Resolution Fix
+
+## Plan
+- [x] Re-audit `SECOND_CHANCE_S16` team availability + label resolution path to confirm exact placeholder fallback trigger.
+- [x] Add a shared canonical-winner source input so downstream participant resolution can use completed source-game winners outside the active template.
+- [x] Wire create/edit/view bracket flows to pass canonical winner context and keep server-side entry validation aligned.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-23 18:17 PDT - Confirmed root cause in `getAvailableTeamsForGame()`: Sweet Sixteen source games (`round2`) are outside `SECOND_CHANCE_S16` template, so with no in-form source picks it falls back to `initialTeams` placeholders (`East Team A/B`, etc.).
+- 2026-03-23 18:21 PDT - Extended bracket availability logic to accept canonical final winner context (`sourceWinnerTeamKeyByGameId`) so non-template upstream games can resolve real participants without hardcoding teams.
+- 2026-03-23 18:23 PDT - Wired canonical winner context through `BracketEditor` + entry form/page plumbing for create/edit flows and merged in final winners from view-mode result data for read-only rendering parity.
+- 2026-03-23 18:25 PDT - Updated server-side entry validation/actions to use the same canonical winner context, preventing UI/server mismatch when selecting Sweet Sixteen participants derived from Round-of-32 results.
+- 2026-03-23 18:30 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+`SECOND_CHANCE_S16` now resolves Sweet Sixteen participants from canonical completed Round-of-32 winners when available, so real team names replace placeholder `Team A/B` labels across create/edit/view flows. The change is shared, type-safe, and keeps all existing bracket/scoring/sync behavior intact.

@@ -4,7 +4,10 @@ import { EntryForm } from "@/components/entry-form";
 import { PageShell } from "@/components/page-shell";
 import { buildEntryName } from "@/lib/entries/validation";
 import { normalizeEntryPicksJson, normalizeEntryTiebreakerJson } from "@/lib/brackets/serialization";
-import { getTeamLabelOverridesByKey } from "@/lib/brackets/team-labels";
+import {
+  getFinalWinnerTeamKeyByGameId,
+  getTeamLabelOverridesByKey,
+} from "@/lib/brackets/team-labels";
 import { prisma } from "@/lib/prisma";
 
 export default async function EditEntryPage({
@@ -33,12 +36,16 @@ export default async function EditEntryPage({
   const normalizedTiebreakerJson = normalizeEntryTiebreakerJson(entry.tiebreakerJson);
   const defaultScoresByTeamKey =
     normalizedTiebreakerJson?.championship.predictedScoresByTeamKey ?? {};
-  const teamLabelOverridesByKey = await getTeamLabelOverridesByKey();
+  const [teamLabelOverridesByKey, sourceWinnerTeamKeyByGameId] = await Promise.all([
+    getTeamLabelOverridesByKey(),
+    getFinalWinnerTeamKeyByGameId(),
+  ]);
 
   return (
     <PageShell
       title={`Edit Entry: ${generatedName}`}
       description="Update participant details and saved bracket picks."
+      size="wide"
     >
       <EntryForm
         mode="edit"
@@ -49,6 +56,7 @@ export default async function EditEntryPage({
         defaultPicksByGameId={normalizedPicksJson.picksByGameId}
         defaultScoresByTeamKey={defaultScoresByTeamKey}
         teamLabelOverridesByKey={teamLabelOverridesByKey}
+        sourceWinnerTeamKeyByGameId={sourceWinnerTeamKeyByGameId}
       />
     </PageShell>
   );

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isFinalGameResultStatus } from "@/lib/results/status";
 
 function toNonEmptyString(value: string | null | undefined): string | null {
   if (typeof value !== "string") {
@@ -102,4 +103,31 @@ export async function getTeamLabelOverridesByKey(): Promise<Record<string, strin
   }
 
   return teamLabelOverridesByKey;
+}
+
+export async function getFinalWinnerTeamKeyByGameId(): Promise<Record<string, string>> {
+  const games = await prisma.game.findMany({
+    select: {
+      id: true,
+      status: true,
+      winnerTeamKey: true,
+    },
+  });
+
+  const winnerTeamKeyByGameId: Record<string, string> = {};
+
+  for (const game of games) {
+    if (!isFinalGameResultStatus(game.status)) {
+      continue;
+    }
+
+    const winnerTeamKey = toNonEmptyString(game.winnerTeamKey);
+    if (!winnerTeamKey) {
+      continue;
+    }
+
+    winnerTeamKeyByGameId[game.id] = winnerTeamKey;
+  }
+
+  return winnerTeamKeyByGameId;
 }
