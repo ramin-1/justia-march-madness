@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useState, type FormEvent } from "react";
 import {
   INITIAL_ENTRY_FORM_STATE,
   type EntryFormState,
@@ -13,6 +13,7 @@ import {
   type BracketType,
   type PicksByGameId,
 } from "@/lib/brackets/types";
+import { parseEntryFormData } from "@/lib/entries/validation";
 import type { WinnerTeamKeyByGameId } from "@/lib/brackets/registry";
 
 type EntryFormAction = (
@@ -61,13 +62,19 @@ export function EntryForm({
   const [draftBracketType, setDraftBracketType] = useState<BracketType | null>(
     null,
   );
+  const [clientFieldErrors, setClientFieldErrors] = useState<Record<string, string[]> | undefined>(
+    undefined,
+  );
+  const [clientMessage, setClientMessage] = useState<string | undefined>(undefined);
   const preservedBracketType = normalizeBracketType(state.values?.bracketType);
   const effectiveBracketType =
     draftBracketType ?? preservedBracketType ?? defaultBracketType;
+  const effectiveFieldErrors = clientFieldErrors ?? state.fieldErrors;
+  const effectiveMessage = clientMessage ?? state.message;
 
   const submitLabel = mode === "create" ? "Create Entry" : "Save Changes";
-  const participantNameError = state.fieldErrors?.participantName?.[0];
-  const bracketTypeError = state.fieldErrors?.bracketType?.[0];
+  const participantNameError = effectiveFieldErrors?.participantName?.[0];
+  const bracketTypeError = effectiveFieldErrors?.bracketType?.[0];
   const isCreateMode = mode === "create";
   const participantNameDefaultValue = state.values?.participantName ?? defaultParticipantName;
 
@@ -94,8 +101,40 @@ export function EntryForm({
     [defaultScoresByTeamKey, isCreateMode],
   );
 
+  function clearClientValidationState() {
+    if (clientFieldErrors) {
+      setClientFieldErrors(undefined);
+    }
+
+    if (clientMessage) {
+      setClientMessage(undefined);
+    }
+  }
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    const formData = new FormData(event.currentTarget);
+    const parsedFormData = parseEntryFormData(formData, {
+      expectedBracketType: mode === "edit" ? defaultBracketType : undefined,
+      sourceWinnerTeamKeyByGameId,
+    });
+
+    if (parsedFormData.success) {
+      clearClientValidationState();
+      return;
+    }
+
+    event.preventDefault();
+    setClientFieldErrors(parsedFormData.fieldErrors);
+    setClientMessage(parsedFormData.message);
+  }
+
   return (
-    <form action={formAction} className="space-y-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+    <form
+      action={formAction}
+      onSubmit={onSubmit}
+      onChange={clearClientValidationState}
+      className="space-y-6 rounded-xl border bg-white p-4 shadow-sm sm:p-6"
+    >
       {entryId ? <input type="hidden" name="id" value={entryId} /> : null}
       {!isCreateMode ? <input type="hidden" name="bracketType" value={effectiveBracketType} /> : null}
 
@@ -175,14 +214,14 @@ export function EntryForm({
         bracketType={effectiveBracketType}
         initialPicksByGameId={editorInitialPicks}
         initialScoresByTeamKey={editorInitialScores}
-        fieldErrors={state.fieldErrors}
+        fieldErrors={effectiveFieldErrors}
         teamLabelOverridesByKey={teamLabelOverridesByKey}
         sourceWinnerTeamKeyByGameId={sourceWinnerTeamKeyByGameId}
       />
 
-      {state.message ? (
+      {effectiveMessage ? (
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-          {state.message}
+          {effectiveMessage}
         </p>
       ) : null}
 

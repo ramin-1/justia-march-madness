@@ -430,6 +430,7 @@ export function BracketEditor({
   const championshipTeams = championshipGameId
     ? availableTeamsByGameId[championshipGameId] ?? []
     : [];
+  const championshipScoreError = fieldErrors?.championshipScore?.[0] ?? null;
   const isTraditionalLayout = bracketType !== "CHAMPIONSHIP";
   const showDesktopBoard = isTraditionalLayout && isXlViewport;
   const showStackedLayout = !isTraditionalLayout || !isXlViewport;
@@ -943,6 +944,10 @@ export function BracketEditor({
               );
             })}
           </div>
+
+          {championshipScoreError ? (
+            <p className="mt-3 text-sm text-red-700">{championshipScoreError}</p>
+          ) : null}
         </section>
       ) : null}
     </section>

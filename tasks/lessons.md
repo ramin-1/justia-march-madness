@@ -287,3 +287,17 @@ YYYY-MM-DD
 **Pattern**: Introducing local state synchronization layers that can drift from source-of-truth values.
 **Rule**: When server action state already carries the needed value, prefer render-time canonical derivation (`draft -> preserved -> default`) over effect-driven copying into another local owner.
 **Applied**: Replaced create-mode bracket-type reducer/effect copy flow with render-time `effectiveBracketType` derivation and bound select/editor/payload to that one value.
+
+## 2026-03-24 - Use Shared Validation Logic For Client Pre-Submit Guards
+
+**Mistake**: Let complex bracket forms rely on server-action failure for first-pass missing-pick feedback, forcing avoidable rerenders and state-recovery edge cases.
+**Pattern**: Duplicating or deferring validation instead of reusing existing canonical rules in a client pre-submit guard.
+**Rule**: When server validation logic is pure and reusable, call it client-side pre-submit to block invalid mutations early while keeping server validation as the safety net.
+**Applied**: Wired `EntryForm` submit interception to `parseEntryFormData(...)`, blocking invalid submits and rendering inline pick errors without losing in-progress selections.
+
+## 2026-03-24 - Validate Cross-Field Championship Consistency, Not Just Per-Field Scores
+
+**Mistake**: Championship validation checked each score field independently but did not enforce that the selected winner's predicted score actually beats the opponent.
+**Pattern**: Missing cross-field consistency checks in forms with interdependent inputs.
+**Rule**: For winner + score forms, add cross-field validation rules after individual field parsing so the selected winner and predicted scores cannot contradict each other.
+**Applied**: Added `CHAMPIONSHIP` rule in shared parser: selected winner score must be strictly greater than losing team score; surfaced section-level `championshipScore` error in bracket UI.

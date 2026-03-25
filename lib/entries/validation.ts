@@ -243,6 +243,33 @@ export function parseEntryFormData(
       }
 
       if (Object.keys(predictedScoresByTeamKey).length === championshipTeams.length) {
+        const selectedWinnerTeamKey = sanitizedPicks[championshipGameId]?.winnerTeamKey;
+
+        if (selectedWinnerTeamKey) {
+          const losingTeamKey = championshipTeams.find(
+            (teamOption) => teamOption.key !== selectedWinnerTeamKey,
+          )?.key;
+
+          if (losingTeamKey) {
+            const selectedWinnerScore = predictedScoresByTeamKey[selectedWinnerTeamKey];
+            const losingTeamScore = predictedScoresByTeamKey[losingTeamKey];
+
+            if (selectedWinnerScore <= losingTeamScore) {
+              addFieldError(
+                fieldErrors,
+                "championshipScore",
+                "The selected winner must have a higher predicted score than the losing team.",
+              );
+            }
+          }
+        }
+
+      }
+
+      if (
+        !hasFieldErrors(fieldErrors) &&
+        Object.keys(predictedScoresByTeamKey).length === championshipTeams.length
+      ) {
         tiebreakerJson = {
           schemaVersion: TIEBREAKER_SCHEMA_VERSION,
           championship: {

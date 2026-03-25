@@ -1091,3 +1091,41 @@ Create-flow now enforces one normalized bracket type value (`effectiveBracketTyp
 
 ## Review
 Create-form bracket type now has no copy-based client rehydration path. The dropdown, rendered editor, and submitted payload all derive from one render-time canonical value, eliminating the reducer/effect drift pattern while preserving participant name and pick recovery on failed submit.
+
+---
+
+# Task: Client Pre-Submit Bracket Pick Validation
+
+## Plan
+- [x] Reuse existing server validation rules on the client to detect missing required picks before submit.
+- [x] Block form submission client-side when validation fails and surface inline pick errors.
+- [x] Keep server-side validation unchanged as backup and preserve existing create/edit behavior when valid.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 13:42 PDT - Implemented pre-submit validation in `EntryForm` using shared `parseEntryFormData(...)` with existing canonical rules (including bracket-type-specific game requirements).
+- 2026-03-24 13:44 PDT - Added local client validation state (`clientFieldErrors`, `clientMessage`) and wired `BracketEditor` to render these inline errors without triggering server action on invalid submit.
+- 2026-03-24 13:46 PDT - Added `onSubmit` blocking path + lightweight `onChange` clearing for client validation errors so user edits can immediately retry without losing form state.
+- 2026-03-24 13:53 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Missing required picks now block submission on the client before the server action runs, using the same validation logic as server-side parsing. Inline errors are shown in the bracket UI, and participant name / bracket type / prior picks remain intact while users fix only missing selections.
+
+---
+
+# Task: Championship Winner/Score Consistency Validation
+
+## Plan
+- [x] Add shared validation rule requiring selected championship winner score to be strictly greater than the losing team score.
+- [x] Surface a clear UI error near the championship score section.
+- [x] Reuse existing client pre-submit and server-side validation flow via shared parser.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-24 14:11 PDT - Added winner-score consistency check in `parseEntryFormData()` for `CHAMPIONSHIP` after score parsing and before tiebreaker acceptance.
+- 2026-03-24 14:13 PDT - Added section-level `championshipScore` error rendering in `BracketEditor` championship score block.
+- 2026-03-24 14:16 PDT - Confirmed client pre-submit flow now blocks invalid winner/score combinations before server action runs, while server-side parser still enforces rule as backup.
+- 2026-03-24 14:20 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+`CHAMPIONSHIP` submissions now require logical winner/score consistency: selected winner score must be strictly higher than the losing team score (equal/lower rejected). Validation is enforced both client-side pre-submit (UX) and server-side (safety), with clear inline messaging.
