@@ -1129,3 +1129,42 @@ Missing required picks now block submission on the client before the server acti
 
 ## Review
 `CHAMPIONSHIP` submissions now require logical winner/score consistency: selected winner score must be strictly higher than the losing team score (equal/lower rejected). Validation is enforced both client-side pre-submit (UX) and server-side (safety), with clear inline messaging.
+
+---
+
+# Task: SECOND_CHANCE_S16 Read-Path Pick Preservation Regression
+
+## Plan
+- [x] Reconfirm where SECOND_CHANCE_S16 picks are stripped in read-path normalization.
+- [x] Extend `normalizeEntryPicksJson` to optionally accept/passthrough `sourceWinnerTeamKeyByGameId`.
+- [x] Wire source-winner context into `/bracket/[id]` and `/entries/[id]/edit` normalization calls.
+- [x] Add regression test coverage if an existing practical harness exists; otherwise document the gap.
+- [x] Run relevant checks and capture review notes.
+
+## Progress Notes
+- 2026-03-25 11:09 PDT - Re-read `AGENTS.md`, `PROJECT_SPEC.md`, `tasks/todo.md`, and `tasks/lessons.md`; traced the bug to `normalizeEntryPicksJson()` sanitizing without source-winner context in view/edit paths.
+- 2026-03-25 11:18 PDT - Updated `normalizeEntryPicksJson()` to accept optional `sourceWinnerTeamKeyByGameId` and pass it through to `sanitizePicksForTemplate()`.
+- 2026-03-25 11:20 PDT - Wired source-winner context into `/bracket/[id]` and `/entries/[id]/edit` normalization calls so SECOND_CHANCE_S16 real-team picks remain valid on read.
+- 2026-03-25 11:28 PDT - No existing repository test harness currently supports TypeScript unit tests (`npm test` is plain `node --test` with zero existing test files), so added targeted runtime verification via `npx tsx --eval` for normalize behavior plus full static/build checks.
+- 2026-03-25 11:30 PDT - Verification complete: `npm run typecheck`, `npm run lint`, `npm run build` (build/tsx required escalated run in this sandbox due process/port restrictions), plus normalize smoke check confirming SECOND_CHANCE picks are stripped without map and preserved with map.
+
+## Review
+Fixed the SECOND_CHANCE_S16 read-path regression by aligning display/edit normalization with the same source-winner context already used in create/update validation. Saved picks with real Sweet Sixteen participants now survive normalization in view/edit, while MAIN/CHAMPIONSHIP behavior remains unchanged unless explicit source context is provided.
+
+---
+
+# Task: Bracket View Admin Edit Button (Session-Gated)
+
+## Plan
+- [x] Inspect bracket page/auth/proxy wiring for current route/session behavior.
+- [x] Add a session-aware `Edit Bracket` action on `/bracket/[id]` left of `Print Bracket`.
+- [x] Keep visibility admin-only and preserve existing bracket rendering/print behavior.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-25 11:40 PDT - Audited `app/bracket/[id]/page.tsx`, `auth.ts`, and `proxy.ts`; confirmed auth helper exists and `/entries/:path*` is already protected server-side.
+- 2026-03-25 11:42 PDT - Updated bracket view action row to include a session-gated `Edit Bracket` link (`/entries/${id}/edit`) to the left of always-visible `Print Bracket`, using matching button styles.
+- 2026-03-25 11:46 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due process/port restrictions).
+
+## Review
+Added a minimal UX improvement to `/bracket/[id]`: admins now see an `Edit Bracket` button next to `Print Bracket`, while public/logged-out users still only see `Print Bracket`. No bracket rendering logic or route protection behavior was changed.

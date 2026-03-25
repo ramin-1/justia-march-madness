@@ -31,15 +31,17 @@ export default async function EditEntryPage({
     notFound();
   }
 
-  const generatedName = buildEntryName(entry.participantName, entry.bracketType);
-  const normalizedPicksJson = normalizeEntryPicksJson(entry.picksJson, entry.bracketType);
-  const normalizedTiebreakerJson = normalizeEntryTiebreakerJson(entry.tiebreakerJson);
-  const defaultScoresByTeamKey =
-    normalizedTiebreakerJson?.championship.predictedScoresByTeamKey ?? {};
   const [teamLabelOverridesByKey, sourceWinnerTeamKeyByGameId] = await Promise.all([
     getTeamLabelOverridesByKey(),
     getFinalWinnerTeamKeyByGameId(),
   ]);
+  const generatedName = buildEntryName(entry.participantName, entry.bracketType);
+  const normalizedPicksJson = normalizeEntryPicksJson(entry.picksJson, entry.bracketType, {
+    sourceWinnerTeamKeyByGameId,
+  });
+  const normalizedTiebreakerJson = normalizeEntryTiebreakerJson(entry.tiebreakerJson);
+  const defaultScoresByTeamKey =
+    normalizedTiebreakerJson?.championship.predictedScoresByTeamKey ?? {};
 
   return (
     <PageShell

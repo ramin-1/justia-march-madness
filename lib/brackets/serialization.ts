@@ -7,7 +7,10 @@ import {
   type EntryTiebreakerJson,
   type PicksByGameId,
 } from "@/lib/brackets/types";
-import { sanitizePicksForTemplate } from "@/lib/brackets/registry";
+import {
+  sanitizePicksForTemplate,
+  type WinnerTeamKeyByGameId,
+} from "@/lib/brackets/registry";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -54,6 +57,9 @@ export function createEmptyPicksJson(bracketType: BracketType): EntryPicksJson {
 export function normalizeEntryPicksJson(
   raw: unknown,
   fallbackBracketType: BracketType,
+  options?: {
+    sourceWinnerTeamKeyByGameId?: WinnerTeamKeyByGameId;
+  },
 ): EntryPicksJson {
   if (!isRecord(raw)) {
     return createEmptyPicksJson(fallbackBracketType);
@@ -70,7 +76,11 @@ export function normalizeEntryPicksJson(
   return {
     schemaVersion: PICKS_SCHEMA_VERSION,
     bracketType,
-    picksByGameId: sanitizePicksForTemplate({ bracketType, picksByGameId }),
+    picksByGameId: sanitizePicksForTemplate({
+      bracketType,
+      picksByGameId,
+      sourceWinnerTeamKeyByGameId: options?.sourceWinnerTeamKeyByGameId,
+    }),
   };
 }
 

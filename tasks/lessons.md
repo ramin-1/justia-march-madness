@@ -301,3 +301,10 @@ YYYY-MM-DD
 **Pattern**: Missing cross-field consistency checks in forms with interdependent inputs.
 **Rule**: For winner + score forms, add cross-field validation rules after individual field parsing so the selected winner and predicted scores cannot contradict each other.
 **Applied**: Added `CHAMPIONSHIP` rule in shared parser: selected winner score must be strictly greater than losing team score; surfaced section-level `championshipScore` error in bracket UI.
+
+## 2026-03-25 - Keep Read-Path Pick Sanitization Context-Aligned With Write Validation
+
+**Mistake**: Normalized saved picks on view/edit without passing `sourceWinnerTeamKeyByGameId`, even though create/update validation used that context for `SECOND_CHANCE_S16`.
+**Pattern**: Re-validating persisted multi-template picks with less context on read than was used on write.
+**Rule**: Any read-path normalization that re-sanitizes picks must receive the same dependency context (for example final source winners) used during write-path validation, especially for templates that depend on external source games.
+**Applied**: Extended `normalizeEntryPicksJson()` with optional source-winner context and wired `/bracket/[id]` + `/entries/[id]/edit` to pass `getFinalWinnerTeamKeyByGameId()` before rendering.
