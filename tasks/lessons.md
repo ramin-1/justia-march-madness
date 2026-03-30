@@ -308,3 +308,17 @@ YYYY-MM-DD
 **Pattern**: Re-validating persisted multi-template picks with less context on read than was used on write.
 **Rule**: Any read-path normalization that re-sanitizes picks must receive the same dependency context (for example final source winners) used during write-path validation, especially for templates that depend on external source games.
 **Applied**: Extended `normalizeEntryPicksJson()` with optional source-winner context and wired `/bracket/[id]` + `/entries/[id]/edit` to pass `getFinalWinnerTeamKeyByGameId()` before rendering.
+
+## 2026-03-29 - Seed Constraints Must Be Scoped To Rounds With Canonical Seed Models
+
+**Mistake**: Applied scraped-seed filtering in fallback matching without checking whether candidate canonical rounds actually had a defined seed-pair model.
+**Pattern**: Reusing early-round disambiguation constraints in later rounds where those constraints are undefined.
+**Rule**: Only apply seed-pair filtering to candidates with explicit canonical seed-pair support (play-in/round1); keep later rounds seed-agnostic unless a deterministic seed model exists.
+**Applied**: Updated sync matcher to filter only seed-model candidates and expanded round normalization for NCAA regional/national labels to avoid misclassifying regional semifinal/final games.
+
+## 2026-03-29 - Sync Matcher Inputs Must Prefer Derived Participants Over Seeded Placeholders
+
+**Mistake**: Local matching candidates for future rounds preferred persisted DB `homeTeam`/`awayTeam` values even when derived upstream participants were available.
+**Pattern**: Treating seeded placeholder labels as authoritative in sync matching inputs for rounds whose participants are dependency-derived.
+**Rule**: For sync matching beyond early rounds, use derived participant names first and only fall back to stored values when derivation is unavailable.
+**Applied**: Updated `buildLocalGamesForMatching()` to prefer derived home/away names and enhanced ambiguous diagnostics to include candidate local names for fast triage.

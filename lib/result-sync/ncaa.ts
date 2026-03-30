@@ -34,10 +34,12 @@ const ROUND_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\bfirst four\b|\bplay[- ]?in\b/i, label: "First Four" },
   { pattern: /\bfirst round\b|\bround of 64\b/i, label: "First Round" },
   { pattern: /\bsecond round\b|\bround of 32\b/i, label: "Second Round" },
+  { pattern: /\bregional semifinal\b/i, label: "Sweet 16" },
+  { pattern: /\bregional final\b/i, label: "Elite Eight" },
   { pattern: /\bsweet 16\b|\bsweet sixteen\b/i, label: "Sweet 16" },
   { pattern: /\belite 8\b|\belite eight\b/i, label: "Elite Eight" },
-  { pattern: /\bfinal four\b|\bsemifinal\b/i, label: "Final Four" },
-  { pattern: /\bchampionship\b|\btitle game\b/i, label: "Championship" },
+  { pattern: /\bfinal four\b|\bnational semi[- ]?final\b|\bsemifinal\b/i, label: "Final Four" },
+  { pattern: /\bnational championship\b|\bchampionship\b|\btitle game\b/i, label: "Championship" },
 ];
 
 export type ScrapedResult = {

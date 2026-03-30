@@ -2,7 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { getAvailableTeamsForGame } from "@/lib/brackets/registry";
 import type { PicksByGameId } from "@/lib/brackets/types";
 import { recalculateEntryStandings } from "@/lib/standings";
-import { fetchNcaaScoresHtml, parseCompletedGamesWithDebug } from "./ncaa";
+import {
+  fetchNcaaScoresHtml,
+  parseCompletedGamesWithDebug,
+  type ScrapedResult,
+} from "./ncaa";
 import {
   findCanonicalGameMatch,
   normalizeTeamName,
@@ -111,6 +115,14 @@ function getRoundSortOrder(roundLabel: string | undefined): number {
     return 2;
   }
 
+  if (normalized.includes("regional semifinal")) {
+    return 3;
+  }
+
+  if (normalized.includes("regional final")) {
+    return 4;
+  }
+
   if (normalized.includes("sweet 16") || normalized.includes("sweet sixteen")) {
     return 3;
   }
@@ -119,15 +131,55 @@ function getRoundSortOrder(roundLabel: string | undefined): number {
     return 4;
   }
 
-  if (normalized.includes("final four") || normalized.includes("semifinal")) {
+  if (
+    normalized.includes("final four") ||
+    normalized.includes("national semifinal") ||
+    normalized.includes("national semi final") ||
+    normalized.includes("national semi-final") ||
+    (normalized.includes("semifinal") && !normalized.includes("regional semifinal"))
+  ) {
     return 5;
   }
 
-  if (normalized.includes("championship") || normalized.includes("title game")) {
+  if (
+    normalized.includes("national championship") ||
+    normalized.includes("championship") ||
+    normalized.includes("title game")
+  ) {
     return 6;
   }
 
   return 999;
+}
+
+function formatScrapedGameDiagnostics(scrapedGame: ScrapedResult): string {
+  const roundLabel = scrapedGame.roundLabel ?? "unknown";
+  const regionLabel = scrapedGame.regionLabel ?? "unknown";
+  const homeSeed = scrapedGame.homeSeed !== null ? String(scrapedGame.homeSeed) : "?";
+  const awaySeed = scrapedGame.awaySeed !== null ? String(scrapedGame.awaySeed) : "?";
+
+  return `${scrapedGame.homeTeam} vs ${scrapedGame.awayTeam} (round=${roundLabel}, region=${regionLabel}, seeds=${homeSeed}/${awaySeed})`;
+}
+
+function formatCandidateDiagnostics({
+  candidateGameIds,
+  localGamesById,
+}: {
+  candidateGameIds: string[];
+  localGamesById: Map<string, LocalGameForMatching>;
+}): string {
+  return candidateGameIds
+    .map((candidateGameId) => {
+      const localGame = localGamesById.get(candidateGameId);
+      if (!localGame) {
+        return candidateGameId;
+      }
+
+      const homeTeam = localGame.homeTeam ?? "?";
+      const awayTeam = localGame.awayTeam ?? "?";
+      return `${candidateGameId}(${homeTeam} vs ${awayTeam})`;
+    })
+    .join(", ");
 }
 
 function parseSeedFromTeamKey(teamKey: string | null): number | null {
@@ -197,8 +249,8 @@ function buildLocalGamesForMatching(gamesById: Map<string, LocalGameRow>): Local
       id: game.id,
       round: game.round,
       region: game.region,
-      homeTeam: game.homeTeam ?? derivedHomeTeam,
-      awayTeam: game.awayTeam ?? derivedAwayTeam,
+      homeTeam: derivedHomeTeam ?? game.homeTeam,
+      awayTeam: derivedAwayTeam ?? game.awayTeam,
     };
   });
 }
@@ -551,6 +603,9 @@ export async function syncNcaaResults(options: SyncNcaaResultsOptions = {}): Pro
 
     for (const scrapedGame of orderedScrapedGames) {
       const localGamesForMatching = buildLocalGamesForMatching(gamesById);
+      const localGamesForMatchingById = new Map(
+        localGamesForMatching.map((localGame) => [localGame.id, localGame]),
+      );
       const canonicalMatch = findCanonicalGameMatch({
         scrapedGame,
         localGames: localGamesForMatching,
@@ -558,16 +613,23 @@ export async function syncNcaaResults(options: SyncNcaaResultsOptions = {}): Pro
 
       if (canonicalMatch.kind === "unmatched") {
         unmatchedGames += 1;
+        const candidateText = canonicalMatch.candidateGameIds?.length
+          ? ` [candidates=${canonicalMatch.candidateGameIds.join(", ")}]`
+          : "";
         unmatchedDetails.push(
-          `${scrapedGame.homeTeam} vs ${scrapedGame.awayTeam}: ${canonicalMatch.reason}`,
+          `${formatScrapedGameDiagnostics(scrapedGame)}: ${canonicalMatch.reason}${candidateText}`,
         );
         continue;
       }
 
       if (canonicalMatch.kind === "ambiguous") {
         ambiguousGames += 1;
+        const candidateText = formatCandidateDiagnostics({
+          candidateGameIds: canonicalMatch.candidateGameIds,
+          localGamesById: localGamesForMatchingById,
+        });
         ambiguousDetails.push(
-          `${scrapedGame.homeTeam} vs ${scrapedGame.awayTeam}: ${canonicalMatch.reason} [${canonicalMatch.candidateGameIds.join(", ")}]`,
+          `${formatScrapedGameDiagnostics(scrapedGame)}: ${canonicalMatch.reason} [candidates=${candidateText}]`,
         );
         continue;
       }
@@ -576,7 +638,7 @@ export async function syncNcaaResults(options: SyncNcaaResultsOptions = {}): Pro
       if (!currentGame) {
         unmatchedGames += 1;
         unmatchedDetails.push(
-          `${scrapedGame.homeTeam} vs ${scrapedGame.awayTeam}: matched canonical id ${canonicalMatch.gameId}, but row is missing in database.`,
+          `${formatScrapedGameDiagnostics(scrapedGame)}: matched canonical id ${canonicalMatch.gameId}, but row is missing in database.`,
         );
         continue;
       }
@@ -584,7 +646,7 @@ export async function syncNcaaResults(options: SyncNcaaResultsOptions = {}): Pro
       if (scrapedGame.homeScore === null || scrapedGame.awayScore === null) {
         skippedGames += 1;
         unmatchedDetails.push(
-          `${scrapedGame.homeTeam} vs ${scrapedGame.awayTeam}: missing final scores in parsed payload.`,
+          `${formatScrapedGameDiagnostics(scrapedGame)}: missing final scores in parsed payload.`,
         );
         continue;
       }
@@ -613,7 +675,7 @@ export async function syncNcaaResults(options: SyncNcaaResultsOptions = {}): Pro
       if (!updateData) {
         skippedGames += 1;
         unmatchedDetails.push(
-          `${scrapedGame.homeTeam} vs ${scrapedGame.awayTeam}: unable to resolve winner team key safely.`,
+          `${formatScrapedGameDiagnostics(scrapedGame)}: unable to resolve winner team key safely.`,
         );
         continue;
       }

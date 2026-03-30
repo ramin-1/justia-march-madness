@@ -1168,3 +1168,46 @@ Fixed the SECOND_CHANCE_S16 read-path regression by aligning display/edit normal
 
 ## Review
 Added a minimal UX improvement to `/bracket/[id]`: admins now see an `Edit Bracket` button next to `Print Bracket`, while public/logged-out users still only see `Print Bracket`. No bracket rendering logic or route protection behavior was changed.
+
+---
+
+# Task: NCAA Sync Late-Round Matching Fix (Sweet 16 / Elite Eight)
+
+## Plan
+- [x] Inspect NCAA parser/matcher/sync diagnostic flow for late-round matching gaps.
+- [x] Fix matcher seed-filter behavior so unsupported rounds are not eliminated by seed constraints.
+- [x] Expand round normalization for NCAA regional/national labels.
+- [x] Improve unmatched/ambiguous sync diagnostics for easier debugging.
+- [x] Verify with `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Progress Notes
+- 2026-03-29 10:31 PDT - Traced matcher root issue: round/region fallback applied seed filtering even when candidate canonical games had no seed-pair model (Sweet 16+), which could collapse candidate sets.
+- 2026-03-29 10:35 PDT - Updated `lib/result-sync/matching.ts` to apply seed filtering only to candidates that support canonical seed pairs (play-in/round1), while leaving non-seed-model rounds intact.
+- 2026-03-29 10:38 PDT - Expanded round normalization in matcher/parser/sync ordering for `Regional Semifinal` => Sweet 16, `Regional Final` => Elite Eight, plus explicit national semifinal/championship handling.
+- 2026-03-29 10:41 PDT - Improved sync diagnostics to include matchup, round label, region label, seeds, and candidate IDs in unmatched/ambiguous detail strings where applicable.
+- 2026-03-29 10:45 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due process/port restrictions).
+
+## Review
+Late-round NCAA sync matching now preserves Sweet 16/Elite Eight candidates during fallback matching by avoiding unsupported seed-pair elimination, while round-label normalization now correctly maps NCAA regional labels to canonical rounds. First Four/Round 1/Round 2 seed behavior remains intact, and diagnostics are richer for future debugging.
+
+---
+
+# Task: NCAA Sync Sweet 16 Ambiguity Regression (Derived Names vs Placeholders)
+
+## Plan
+- [x] Inspect sync matcher input construction and confirm placeholder-over-derivation precedence in `buildLocalGamesForMatching()`.
+- [x] Switch local matching candidates to prefer derived participant names over stored DB placeholders when derivation exists.
+- [x] Add richer ambiguous diagnostics including local candidate home/away names used during comparison.
+- [x] Verify with Sweet 16 date-targeted sync runs and static checks.
+
+## Progress Notes
+- 2026-03-29 11:12 PDT - Confirmed regression source in `sync-service.ts`: local matching candidates still used `game.homeTeam ?? derivedHomeTeam` and `game.awayTeam ?? derivedAwayTeam`, allowing seeded placeholder names to override derived real participants.
+- 2026-03-29 11:15 PDT - Updated local candidate construction to prefer `derivedHomeTeam/derivedAwayTeam` first, with DB value fallback only when derivation is missing.
+- 2026-03-29 11:17 PDT - Extended ambiguous diagnostics to include candidate IDs plus the exact local home/away names being compared.
+- 2026-03-29 11:26 PDT - Runtime verification: `NCAA_SCORES_DATE=2026-03-26 npm run sync:results` => parsed 4, matched 4, ambiguous 0.
+- 2026-03-29 11:27 PDT - Runtime verification: `NCAA_SCORES_DATE=2026-03-27 npm run sync:results` => parsed 4, matched 4, ambiguous 0.
+- 2026-03-29 11:28 PDT - Runtime verification: `NCAA_SCORES_DATE=2026-03-29 npm run sync:results` => parsed 2, matched 2, ambiguous 0 (Elite Eight).
+- 2026-03-29 11:30 PDT - Static verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process restrictions).
+
+## Review
+Sweet 16 ambiguity regression is resolved by feeding matcher candidates with derived upstream-participant names whenever available, eliminating placeholder-name collisions within region Sweet 16 slots. Elite Eight now also matches cleanly once Sweet 16 games are synced.

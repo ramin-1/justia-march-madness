@@ -68,6 +68,14 @@ function normalizeRound(value: string | null | undefined): BracketRoundKey | nul
     return "round2";
   }
 
+  if (normalized.includes("regional semifinal")) {
+    return "sweet16";
+  }
+
+  if (normalized.includes("regional final")) {
+    return "elite8";
+  }
+
   if (normalized.includes("sweet 16") || normalized.includes("sweet sixteen")) {
     return "sweet16";
   }
@@ -76,11 +84,21 @@ function normalizeRound(value: string | null | undefined): BracketRoundKey | nul
     return "elite8";
   }
 
-  if (normalized.includes("final four") || normalized.includes("semifinal")) {
+  if (
+    normalized.includes("final four") ||
+    normalized.includes("national semifinal") ||
+    normalized.includes("national semi final") ||
+    normalized.includes("national semi-final") ||
+    (normalized.includes("semifinal") && !normalized.includes("regional semifinal"))
+  ) {
     return "final4";
   }
 
-  if (normalized.includes("championship") || normalized.includes("title game")) {
+  if (
+    normalized.includes("national championship") ||
+    normalized.includes("championship") ||
+    normalized.includes("title game")
+  ) {
     return "championship";
   }
 
@@ -158,6 +176,7 @@ export type CanonicalMatchResult =
   | {
       kind: "unmatched";
       reason: string;
+      candidateGameIds?: string[];
     };
 
 export function normalizeTeamName(value: string): string {
@@ -228,7 +247,24 @@ export function findCanonicalGameMatch({
   }
 
   if (scrapedGame.homeSeed !== null && scrapedGame.awaySeed !== null) {
-    candidates = candidates.filter((gameId) => hasMatchingSeedPair(scrapedGame, gameId));
+    const candidatesWithSeedModel: string[] = [];
+    const candidatesWithoutSeedModel: string[] = [];
+
+    for (const gameId of candidates) {
+      if (getCanonicalSeedPair(gameId)) {
+        candidatesWithSeedModel.push(gameId);
+      } else {
+        candidatesWithoutSeedModel.push(gameId);
+      }
+    }
+
+    if (candidatesWithSeedModel.length > 0) {
+      const matchedSeedCandidates = candidatesWithSeedModel.filter((gameId) =>
+        hasMatchingSeedPair(scrapedGame, gameId),
+      );
+
+      candidates = [...candidatesWithoutSeedModel, ...matchedSeedCandidates];
+    }
   }
 
   if (candidates.length === 1) {
@@ -250,5 +286,6 @@ export function findCanonicalGameMatch({
   return {
     kind: "unmatched",
     reason: "No deterministic canonical game match found.",
+    candidateGameIds: candidates.length > 0 ? candidates : undefined,
   };
 }
