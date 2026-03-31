@@ -190,6 +190,22 @@ export function createGameResultsIndex(
   return byGameId;
 }
 
+export function buildFinalWinnerTeamKeyByGameId(
+  gameResultsById: Map<string, GameResultSnapshot>,
+): Record<string, string> {
+  const winnerTeamKeyByGameId: Record<string, string> = {};
+
+  for (const [gameId, gameResult] of gameResultsById) {
+    if (!gameResult.isResolved || !gameResult.winnerTeamKey) {
+      continue;
+    }
+
+    winnerTeamKeyByGameId[gameId] = gameResult.winnerTeamKey;
+  }
+
+  return winnerTeamKeyByGameId;
+}
+
 function scoreBracketGames({
   bracketType,
   pointsByRound,

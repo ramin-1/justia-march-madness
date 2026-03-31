@@ -161,20 +161,21 @@ function SecondChanceLeaderboardTable({
   return (
     <div className="rounded-xl border bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="min-w-[680px] divide-y divide-slate-200 text-sm">
+        <table className="min-w-[760px] divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left">
             <tr>
               <th className="px-4 py-3 font-semibold">Rank</th>
               <th className="px-4 py-3 font-semibold">Entry</th>
               <th className="px-4 py-3 font-semibold">Participant</th>
               <th className="px-4 py-3 font-semibold">Score</th>
+              <th className="px-4 py-3 font-semibold">Max Possible</th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-100">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-600">
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-600">
                   No second chance entries yet.
                 </td>
               </tr>
@@ -189,6 +190,7 @@ function SecondChanceLeaderboardTable({
                   </td>
                   <td className="px-4 py-3">{entry.participantName}</td>
                   <td className="px-4 py-3">{entry.score}</td>
+                  <td className="px-4 py-3">{entry.maxPossibleScore}</td>
                 </tr>
               ))
             )}

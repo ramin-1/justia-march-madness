@@ -28,6 +28,64 @@ Completed Milestone 3 with a minimal production-friendly CRUD flow for entries: 
 
 ---
 
+# Task: SECOND_CHANCE Max Possible Display
+
+## Plan
+- [x] Verify whether second-chance max-possible is computed or dropped between scoring and UI.
+- [x] Wire `maxPossibleScore` into second-chance leaderboard row shape + table rendering.
+- [x] Show second-chance max-possible in `/bracket/[id]` score panel using live scoring summary.
+- [x] Remove any source-level hardcoded second-chance max-possible `0`.
+- [x] Run verification (`npm run typecheck`, `npm run lint`, `npm run build`).
+
+## Progress Notes
+- 2026-03-31 16:34 PDT - Confirmed `scoreSecondChanceEntry` already computes `maxPossibleScore`, but leaderboard row shape/table omitted it and standings persistence still hardcoded second-chance `maxPossibleScore: 0`.
+- 2026-03-31 16:35 PDT - Updated `lib/leaderboard.ts` and `app/leaderboard/page.tsx` so second-chance leaderboard now renders `Max Possible`.
+- 2026-03-31 16:36 PDT - Updated `/bracket/[id]` score panel to render second-chance `Max Possible` from the same live second-chance score summary.
+- 2026-03-31 16:36 PDT - Updated `lib/standings.ts` to persist computed second-chance max-possible instead of hardcoded zero.
+
+## Review
+Second-chance max-possible now flows consistently from shared scoring logic through persisted standings, leaderboard display, and individual bracket score panel.
+
+---
+
+# Task: Bracket View SECOND_CHANCE Score Consistency
+
+## Plan
+- [x] Diagnose `/bracket/[id]` score-panel data source vs leaderboard scoring path.
+- [x] Switch bracket-page score display to live scoring using existing scorer utilities.
+- [x] Ensure second-chance normalization includes source winner context.
+- [x] Keep MAIN/CHAMPIONSHIP UX and action buttons unchanged.
+- [x] Run verification (`npm run typecheck`, `npm run lint`, `npm run build`).
+
+## Progress Notes
+- 2026-03-31 16:23 PDT - Confirmed bracket page showed persisted `Entry.totalScore` while second-chance leaderboard computes score live from picks + current game results with source-winner normalization.
+- 2026-03-31 16:25 PDT - Updated `app/bracket/[id]/page.tsx` to compute displayed MAIN/SECOND_CHANCE scores live using `createGameResultsIndex`, `buildFinalWinnerTeamKeyByGameId`, `scoreMainBracketEntry`, and `scoreSecondChanceEntry`.
+- 2026-03-31 16:25 PDT - Kept championship behavior as ranking-note-only and left edit/print button behavior unchanged.
+
+## Review
+Score panel now uses leaderboard-consistent live scoring logic for second-chance entries, eliminating stale persisted-score drift on `/bracket/[id]`.
+
+---
+
+# Task: Bracket View Score Summary Card
+
+## Plan
+- [x] Inspect `/bracket/[id]` page data query and action-row layout.
+- [x] Add minimal entry score-field selection for top-of-page display.
+- [x] Add responsive score summary card near `Edit Bracket` / `Print Bracket`.
+- [x] Handle championship entries intentionally with rank/tiebreak messaging instead of score.
+- [x] Run verification (`npm run typecheck`, `npm run lint`, `npm run build`).
+
+## Progress Notes
+- 2026-03-31 16:10 PDT - Confirmed `Entry` already persists `totalScore`, `correctPicks`, and `maxPossibleScore`, and `/bracket/[id]` already renders the action row with admin-only edit + always-visible print buttons.
+- 2026-03-31 16:12 PDT - Updated `app/bracket/[id]/page.tsx` to select score fields and render a small score summary card aligned with the action buttons.
+- 2026-03-31 16:12 PDT - Implemented bracket-type display behavior: MAIN shows score + correct/max, SECOND_CHANCE_S16 shows score, CHAMPIONSHIP shows a ranking/tiebreak note.
+
+## Review
+Completed a minimal UX enhancement on `/bracket/[id]` without touching bracket rendering logic or auth behavior. Score display uses persisted entry standings fields and keeps button behavior unchanged.
+
+---
+
 # Task: Multi-Bracket Architecture Alignment (Planning-Only Pass)
 
 ## Plan
@@ -216,6 +274,26 @@ Migration chain ordering is now internally consistent from an empty database. Lo
 
 ## Review
 Config cleanup complete. Prisma now uses `prisma.config.ts` as the primary config source with equivalent schema/migration/seed settings, and the deprecated `package.json#prisma` warning is removed.
+
+---
+
+# Task: SECOND_CHANCE_S16 Leaderboard Scoring Normalization Context
+
+## Plan
+- [x] Inspect `standings` + `leaderboard` scoring paths for `normalizeEntryPicksJson(...)` usage.
+- [x] Confirm whether `SECOND_CHANCE_S16` normalization is missing `sourceWinnerTeamKeyByGameId`.
+- [x] Add shared finalized-winner map helper and pass source context in second-chance scoring paths.
+- [x] Verify no behavior change for `MAIN` and `CHAMPIONSHIP`.
+- [x] Run verification (`npm run typecheck`, `npm run lint`, `npm run build`).
+
+## Progress Notes
+- 2026-03-31 15:48 PDT - Confirmed root issue: both `recalculateEntryStandings()` and `buildSecondChanceLeaderboardRows()` normalized second-chance picks without source winner context, which can strip valid Sweet Sixteen+ picks before scoring.
+- 2026-03-31 15:50 PDT - Added `buildFinalWinnerTeamKeyByGameId(...)` in `lib/scoring.ts` and reused it in `lib/standings.ts` + `lib/leaderboard.ts`.
+- 2026-03-31 15:51 PDT - Updated second-chance-only normalization calls to pass `{ sourceWinnerTeamKeyByGameId }`; left main/championship paths unchanged.
+- 2026-03-31 15:53 PDT - Verification complete: `npm run typecheck`, `npm run lint`, and `npm run build` (build required escalated run in this sandbox due Turbopack process/port restrictions).
+
+## Review
+Fix complete and scoped. `SECOND_CHANCE_S16` scoring paths now normalize picks with finalized upstream winner context before scoring, so valid picks are retained for both persisted standings recalculation and live leaderboard rendering.
 
 ---
 

@@ -2,6 +2,7 @@ import { getTeamLabel } from "@/lib/brackets/registry";
 import { normalizeEntryPicksJson, normalizeEntryTiebreakerJson } from "@/lib/brackets/serialization";
 import { BRACKET_TYPE_LABELS, type BracketType } from "@/lib/brackets/types";
 import {
+  buildFinalWinnerTeamKeyByGameId,
   getChampionshipOutcome,
   rankChampionshipEntries,
   scoreMainBracketEntry,
@@ -92,6 +93,7 @@ export type SecondChanceLeaderboardRow = {
   name: string;
   participantName: string;
   score: number;
+  maxPossibleScore: number;
 };
 
 export type ChampionshipLeaderboardRow = {
@@ -170,8 +172,12 @@ export function buildSecondChanceLeaderboardRows({
   entries: EntryForLeaderboard[];
   gameResultsById: Map<string, GameResultSnapshot>;
 }): SecondChanceLeaderboardRow[] {
+  const sourceWinnerTeamKeyByGameId = buildFinalWinnerTeamKeyByGameId(gameResultsById);
+
   const scoredEntries = entries.map((entry) => {
-    const picksByGameId = normalizeEntryPicksJson(entry.picksJson, entry.bracketType).picksByGameId;
+    const picksByGameId = normalizeEntryPicksJson(entry.picksJson, entry.bracketType, {
+      sourceWinnerTeamKeyByGameId,
+    }).picksByGameId;
     const score = scoreSecondChanceEntry({ picksByGameId, gameResultsById });
 
     return {
@@ -179,6 +185,7 @@ export function buildSecondChanceLeaderboardRows({
       name: entry.name,
       participantName: entry.participantName,
       score: score.totalScore,
+      maxPossibleScore: score.maxPossibleScore,
     };
   });
 

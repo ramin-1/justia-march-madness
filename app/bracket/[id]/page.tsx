@@ -6,11 +6,16 @@ import { PrintBracketButton } from "@/components/print-bracket-button";
 import { BRACKET_TYPE_LABELS } from "@/lib/brackets/types";
 import { PageShell } from "@/components/page-shell";
 import { normalizeEntryPicksJson, normalizeEntryTiebreakerJson } from "@/lib/brackets/serialization";
-import {
-  getFinalWinnerTeamKeyByGameId,
-  getTeamLabelOverridesByKey,
-} from "@/lib/brackets/team-labels";
+import { getTeamLabelOverridesByKey } from "@/lib/brackets/team-labels";
 import { prisma } from "@/lib/prisma";
+import {
+  buildFinalWinnerTeamKeyByGameId,
+  createGameResultsIndex,
+  scoreMainBracketEntry,
+  scoreSecondChanceEntry,
+  type GameResultRow,
+} from "@/lib/scoring";
+import { SCORE_GAME_RESULT_SELECT } from "@/lib/standings";
 
 export default async function BracketViewPage({
   params,
@@ -35,23 +40,36 @@ export default async function BracketViewPage({
     notFound();
   }
 
-  const [teamLabelOverridesByKey, sourceWinnerTeamKeyByGameId, gameResults] = await Promise.all([
+  const [teamLabelOverridesByKey, gameResults] = await Promise.all([
     getTeamLabelOverridesByKey(),
-    getFinalWinnerTeamKeyByGameId(),
     prisma.game.findMany({
-      select: {
-        id: true,
-        status: true,
-        winnerTeamKey: true,
-        winnerTeam: true,
-      },
+      select: SCORE_GAME_RESULT_SELECT,
     }),
   ]);
+  const gameResultsById = createGameResultsIndex(gameResults as GameResultRow[]);
+  const sourceWinnerTeamKeyByGameId = buildFinalWinnerTeamKeyByGameId(gameResultsById);
   const normalizedPicksJson = normalizeEntryPicksJson(entry.picksJson, entry.bracketType, {
     sourceWinnerTeamKeyByGameId,
   });
   const normalizedTiebreakerJson = normalizeEntryTiebreakerJson(entry.tiebreakerJson);
   const scoreMap = normalizedTiebreakerJson?.championship.predictedScoresByTeamKey ?? {};
+  const isChampionshipBracket = entry.bracketType === "CHAMPIONSHIP";
+  const mainScoreSummary =
+    entry.bracketType === "MAIN"
+      ? scoreMainBracketEntry({
+          picksByGameId: normalizeEntryPicksJson(entry.picksJson, entry.bracketType).picksByGameId,
+          gameResultsById,
+        })
+      : null;
+  const secondChanceScoreSummary =
+    entry.bracketType === "SECOND_CHANCE_S16"
+      ? scoreSecondChanceEntry({
+          picksByGameId: normalizeEntryPicksJson(entry.picksJson, entry.bracketType, {
+            sourceWinnerTeamKeyByGameId,
+          }).picksByGameId,
+          gameResultsById,
+        })
+      : null;
 
   const actualGameResultsByGameId = Object.fromEntries(
     gameResults.map((gameResult) => [
@@ -70,16 +88,47 @@ export default async function BracketViewPage({
       description={`Read-only saved ${BRACKET_TYPE_LABELS[entry.bracketType]}.`}
       size="wide"
     >
-      <div className="mb-4 flex justify-end gap-2 print:hidden">
-        {session?.user ? (
-          <Link
-            href={`/entries/${id}/edit`}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Edit Bracket
-          </Link>
-        ) : null}
-        <PrintBracketButton />
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between print:hidden">
+        <div className="rounded-xl border bg-white px-4 py-3 shadow-sm md:min-w-[260px]">
+          {isChampionshipBracket ? (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Championship Ranking</p>
+              <p className="mt-1 text-sm text-slate-700">
+                Ranked by winner pick and final-score tiebreak closeness.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current Score</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">
+                {mainScoreSummary?.totalScore ?? secondChanceScoreSummary?.totalScore ?? 0}
+              </p>
+              {entry.bracketType === "MAIN" ? (
+                <p className="mt-1 text-xs text-slate-600">
+                  Correct Picks: {mainScoreSummary?.correctPicks ?? 0} • Max Possible:{" "}
+                  {mainScoreSummary?.maxPossibleScore ?? 0}
+                </p>
+              ) : null}
+              {entry.bracketType === "SECOND_CHANCE_S16" ? (
+                <p className="mt-1 text-xs text-slate-600">
+                  Max Possible: {secondChanceScoreSummary?.maxPossibleScore ?? 0}
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2">
+          {session?.user ? (
+            <Link
+              href={`/entries/${id}/edit`}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Edit Bracket
+            </Link>
+          ) : null}
+          <PrintBracketButton />
+        </div>
       </div>
       <BracketEditor
         mode="view"

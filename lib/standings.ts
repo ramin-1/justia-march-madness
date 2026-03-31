@@ -3,6 +3,7 @@ import { normalizeEntryPicksJson } from "@/lib/brackets/serialization";
 import type { BracketType, PicksByGameId } from "@/lib/brackets/types";
 import { prisma } from "@/lib/prisma";
 import {
+  buildFinalWinnerTeamKeyByGameId,
   createGameResultsIndex,
   scoreMainBracketEntry,
   scoreSecondChanceEntry,
@@ -54,7 +55,7 @@ function toPersistedScoreFields({
     return {
       totalScore: result.totalScore,
       correctPicks: 0,
-      maxPossibleScore: 0,
+      maxPossibleScore: result.maxPossibleScore,
     };
   }
 
@@ -79,6 +80,7 @@ export async function recalculateEntryStandings(options?: { entryIds?: string[] 
   }
 
   const gameResultsById = await getCurrentGameResultsIndex();
+  const sourceWinnerTeamKeyByGameId = buildFinalWinnerTeamKeyByGameId(gameResultsById);
 
   const entries = await prisma.entry.findMany({
     where: options?.entryIds ? { id: { in: options.entryIds } } : undefined,
@@ -95,7 +97,13 @@ export async function recalculateEntryStandings(options?: { entryIds?: string[] 
 
   await prisma.$transaction(
     entries.map((entry) => {
-      const picksByGameId = normalizeEntryPicksJson(entry.picksJson, entry.bracketType).picksByGameId;
+      const picksByGameId = normalizeEntryPicksJson(
+        entry.picksJson,
+        entry.bracketType,
+        entry.bracketType === "SECOND_CHANCE_S16"
+          ? { sourceWinnerTeamKeyByGameId }
+          : undefined,
+      ).picksByGameId;
 
       return prisma.entry.update({
         where: { id: entry.id },
