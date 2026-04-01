@@ -1,4 +1,4 @@
-# justia-march-madness
+# march-madness-tracker
 
 Company March Madness bracket challenge app with:
 
